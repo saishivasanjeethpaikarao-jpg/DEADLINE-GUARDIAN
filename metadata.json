@@ -1,0 +1,6 @@
+{
+  "name": "Deadline Guardian",
+  "description": "AI-powered hackathon project and task planning assistant with intelligent Google Calendar block-scheduling and context-aware smart alarms.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

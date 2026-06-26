@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Playfair Display", Georgia, serif;
+  --font-dm: "DM Sans", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  
+  --color-google-blue: #4285F4;
+  --color-google-green: #34A853;
+  --color-google-yellow: #FBBC04;
+  --color-google-red: #EA4335;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.3);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(156, 163, 175, 0.5);
+}
+
+/* Alarm & pulsing animations */
+@keyframes alarm-ring {
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1.08) rotate(-3deg); }
+  50% { transform: scale(1) rotate(3deg); }
+  75% { transform: scale(1.08) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.animate-alarm-ring {
+  animation: alarm-ring 0.4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0%, 100% { height: 12px; }
+  50% { height: 48px; }
+}
+
+.voice-wave {
+  animation: wave 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+  100% { transform: scale(0.95); opacity: 0.5; }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s infinite ease-in-out;
+}
+

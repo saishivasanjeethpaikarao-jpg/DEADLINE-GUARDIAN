@@ -770,11 +770,12 @@ const AppContent: React.FC = () => {
   const activeTaskObj = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
 
   return (
-    <MainLayout
-      tasks={tasks}
-      currentView={currentView}
-      onNavigate={navigateTo}
-    >
+    <>
+      <MainLayout
+        tasks={tasks}
+        currentView={currentView}
+        onNavigate={navigateTo}
+      >
       
       {/* Dynamic Proactive alerts (Floating toast layout) */}
       {currentView !== 'focus' && (
@@ -1311,7 +1312,7 @@ const AppContent: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 50 }}
                       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-                      className="fixed inset-0 bg-[#F5F1EB] z-50 flex flex-col p-4 sm:p-6 md:p-8 overflow-hidden h-screen"
+                      className="fixed inset-y-0 right-0 left-0 md:left-[80px] bg-[#F5F1EB] z-40 flex flex-col p-4 sm:p-6 md:p-8 overflow-hidden h-screen"
                     >
                       <VoiceInputView 
                         onBack={() => setCurrentView('dashboard')} 
@@ -1350,6 +1351,7 @@ const AppContent: React.FC = () => {
           <Plus className="h-6 w-6 stroke-[3px]" style={{ color: '#C9A96E' }} />
         </button>
       )}
+      </MainLayout>
 
       {/* Guardian Brain Companion Chatbot Widget */}
       {user && (
@@ -1385,7 +1387,7 @@ const AppContent: React.FC = () => {
           isBreakingDown={isBreakingDown}
         />
       )}
-    </MainLayout>
+    </>
   );
 };
 

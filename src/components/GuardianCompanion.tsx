@@ -269,6 +269,38 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
     }
   };
 
+  const fetchWithRetry = async (
+    url: string,
+    options: RequestInit,
+    retries = 3,
+    delayMs = 1000
+  ): Promise<Response> => {
+    let lastError: any = null;
+    for (let i = 0; i < retries; i++) {
+      try {
+        const response = await fetch(url, options);
+        if (response.ok) {
+          return response;
+        }
+        if (response.status === 503 || response.status === 429 || response.status === 500) {
+          console.warn(`[Companion API] Received ${response.status}. Retrying in ${delayMs}ms... (Attempt ${i + 1}/${retries})`);
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          delayMs *= 2;
+          continue;
+        }
+        throw new Error(`HTTP Error ${response.status}: ${response.statusText}`);
+      } catch (error: any) {
+        lastError = error;
+        console.warn(`[Companion API] Attempt ${i + 1}/${retries} failed: ${error.message || error}`);
+        if (i < retries - 1) {
+          await new Promise(resolve => setTimeout(resolve, delayMs));
+          delayMs *= 2;
+        }
+      }
+    }
+    throw lastError || new Error(`Failed after ${retries} attempts.`);
+  };
+
   const handleSendMessage = async (textToSend?: string) => {
     const finalMsg = (textToSend || inputMessage).trim();
     if (!finalMsg && attachments.length === 0) return;
@@ -328,7 +360,7 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
     }, 1200);
 
     try {
-      const response = await fetch('/api/gemini/guardian-companion', {
+      const response = await fetchWithRetry('/api/gemini/guardian-companion', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -465,29 +497,31 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
   return (
     <>
       {/* FLOATING ACTION TRIGGER BUTTON */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
-        {/* Help label on hover */}
-        <div className="hidden sm:block bg-[#FAF8F5] border-2 border-[#292524] px-3 py-1.5 rounded-xl shadow-[2px_2px_0px_#292524] text-stone-700 font-mono text-[10px] tracking-widest uppercase font-black">
-          🛡️ Ask Guardian
+      {currentView !== 'focus' && (
+        <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
+          {/* Help label on hover */}
+          <div className="hidden sm:block bg-[#FAF8F5] border-2 border-[#292524] px-3 py-1.5 rounded-xl shadow-[2px_2px_0px_#292524] text-stone-700 font-mono text-[10px] tracking-widest uppercase font-black">
+            🛡️ Ask Guardian
+          </div>
+          <button
+            id="guardian-companion-floating-trigger"
+            onClick={() => setIsOpen(true)}
+            className="h-14 w-14 rounded-full bg-[#5B6B43] hover:bg-[#4a5836] border-4 border-[#292524] flex items-center justify-center shadow-[6px_6px_0px_#292524] cursor-pointer hover:scale-105 transition-all text-white relative group active:translate-y-1"
+            title="Open AI Companion"
+          >
+            <Bot className="h-6 w-6 animate-pulse" />
+            <span className="absolute -top-1 -right-1 bg-[#C4705A] border-2 border-[#292524] rounded-full h-4 w-4 flex items-center justify-center">
+              <span className="h-1.5 w-1.5 bg-white rounded-full animate-ping" />
+            </span>
+          </button>
         </div>
-        <button
-          id="guardian-companion-floating-trigger"
-          onClick={() => setIsOpen(true)}
-          className="h-14 w-14 rounded-full bg-[#5B6B43] hover:bg-[#4a5836] border-4 border-[#292524] flex items-center justify-center shadow-[6px_6px_0px_#292524] cursor-pointer hover:scale-105 transition-all text-white relative group active:translate-y-1"
-          title="Open AI Companion"
-        >
-          <Bot className="h-6 w-6 animate-pulse" />
-          <span className="absolute -top-1 -right-1 bg-[#C4705A] border-2 border-[#292524] rounded-full h-4 w-4 flex items-center justify-center">
-            <span className="h-1.5 w-1.5 bg-white rounded-full animate-ping" />
-          </span>
-        </button>
-      </div>
+      )}
 
       <AnimatePresence>
         {isOpen && (
           <div 
             id="guardian-chat-drawer-overlay"
-            className="fixed inset-0 z-50 flex justify-center bg-stone-900/80 backdrop-blur-md p-0 sm:p-4 md:p-6 lg:p-8 animate-fade-in"
+            className="fixed inset-0 z-[80] flex justify-center bg-stone-900/80 backdrop-blur-md p-0 sm:p-4 md:p-6 lg:p-8 animate-fade-in"
           >
             {/* Main Full-Screen Panel */}
             <motion.div

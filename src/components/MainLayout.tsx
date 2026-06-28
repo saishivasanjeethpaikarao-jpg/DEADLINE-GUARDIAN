@@ -25,6 +25,15 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   
   const streak = calculateStreak(tasks);
   const goldColor = '#C9A96E';
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  React.useEffect(() => {
+    const media = window.matchMedia('(min-width: 768px)');
+    setIsDesktop(media.matches);
+    const listener = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    media.addEventListener('change', listener);
+    return () => media.removeEventListener('change', listener);
+  }, []);
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, description: 'Command Center' },
@@ -137,16 +146,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
         <motion.main
           className="flex-1 flex flex-col w-full min-h-screen transition-all"
           animate={{
-            paddingLeft: isSpineExpanded ? 280 : 80,
+            paddingLeft: isDesktop ? (isSpineExpanded ? 280 : 80) : 0,
             paddingRight: 0
           }}
           transition={{
             duration: 0.3,
             ease: [0.25, 1, 0.5, 1]
-          }}
-          style={{
-            paddingLeft: '80px',
-            paddingRight: '0px'
           }}
         >
           {/* Subtle mobile spacing adjustment */}

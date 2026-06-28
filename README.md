@@ -1,4 +1,4 @@
-# <p align="center"><img src="https://img.icons8.com/color/120/000000/shield.png" width="80" alt="Deadline Guardian Logo" /><br>Deadline Guardian (AURA)</p>
+# <p align="center"><img src="https://img.icons8.com/color/120/000000/shield.png" width="80" alt="Deadline Guardian Logo" /><br>Deadline Guardian</p>
 
 <p align="center">
   <strong>An AI-powered Chief of Staff that reasons, replans, and rescues you from missed deadlines.</strong>
@@ -28,7 +28,7 @@
 ## 🧭 Navigation
 
 - [📖 Problem Statement & Core Concept](#-problem-statement)
-- [✨ The Solution: AURA Architecture](#-the-solution)
+- [✨ The Solution: Deadline Guardian Architecture](#-the-solution)
 - [📦 Key Feature Breakdown](#-key-features)
 - [⚙️ Google Stack & Technologies Used](#-google-stack)
 - [🏗️ System Architecture & Data Flow](#%EF%B8%8F-system-architecture)
@@ -60,9 +60,9 @@ When a user falls behind, the system remains silent, allowing stress to build un
 
 ## ✨ The Solution
 
-**Deadline Guardian (AURA)** is an active, autonomous, and highly empathetic **AI Chief of Staff** that acts as an accountability shield. Built with a bespoke design-first interface, it dynamically guides users from initial planning to successful project submission.
+**Deadline Guardian** is an active, autonomous, and highly empathetic **AI Chief of Staff** that acts as an accountability shield. Built with a bespoke design-first interface, it dynamically guides users from initial planning to successful project submission.
 
-AURA does not just remind you; it **reasons**, **replans**, and **rescues**.
+Deadline Guardian does not just remind you; it **reasons**, **replans**, and **rescues**.
 
 ```mermaid
 graph TD
@@ -80,26 +80,26 @@ graph TD
 ## 📦 Key Features
 
 ### 1. 🎙️ Natural Language Mission Entry
-Type or speak your deadlines in messy, conversational English (e.g., *"I have a 10-page computer science thesis due tomorrow at noon, I still need to write the abstract and edit the bibliography but I'm feeling exhausted"*). AURA parses the structural objectives, deadlines, emotional state, and resource requirements instantly.
+Type or speak your deadlines in messy, conversational English (e.g., *"I have a 10-page computer science thesis due tomorrow at noon, I still need to write the abstract and edit the bibliography but I'm feeling exhausted"*). Deadline Guardian parses the structural objectives, deadlines, emotional state, and resource requirements instantly.
 
 ### 2. 🧠 Gemini-Powered Mission Analysis
 Under the hood, **Gemini 2.5/1.5** models reason about the complexity of your request. It estimates exact hourly breakdowns, maps dependencies, flags missing requirements, and outputs structured JSON schemas to feed the state machine.
 
 ### 3. 📉 Success Probability Engine
-AURA estimates the probability of completing your work on time using a multi-factor risk model:
+Deadline Guardian estimates the probability of completing your work on time using a multi-factor risk model:
 *   Time remaining vs. total required duration.
 *   Priority weighting of competing tasks.
 *   Your active "Energy Level" or environmental constraints.
 *   Overlapping calendar conflicts.
 
 ### 4. 🧭 Critical Path Detection
-AURA automatically isolates the most critical dependency blocks. If you only have 3 hours left for a 6-hour project, it highlights the **absolute vital path** and filters out secondary nice-to-haves.
+Deadline Guardian automatically isolates the most critical dependency blocks. If you only have 3 hours left for a 6-hour project, it highlights the **absolute vital path** and filters out secondary nice-to-haves.
 
 ### 5. 🛡️ Rescue Mode & Shock-Absorber
-When success probability drops below **40%**, AURA shifts the entire app into a high-visibility, high-contrast **Rescue Mode**. It dims ambient visual elements, eliminates navigation sidebars, and locks you into the critical path until safety is restored.
+When success probability drops below **40%**, Deadline Guardian shifts the entire app into a high-visibility, high-contrast **Rescue Mode**. It dims ambient visual elements, eliminates navigation sidebars, and locks you into the critical path until safety is restored.
 
-### 6. 🕒 Dynamic Dynamic Re-Planning
-Missed a 30-minute block? Simply tell AURA or click "Replan". The AI shifts your focus blocks forward, coordinates buffer offsets, and re-allocates time slots without manual dragging and dropping.
+### 6. 🕒 Dynamic Re-Planning
+Missed a 30-minute block? Simply tell Deadline Guardian or click "Replan". The AI shifts your focus blocks forward, coordinates buffer offsets, and re-allocates time slots without manual dragging and dropping.
 
 ### 7. 🔒 Focus Shield & Immersive Space
 An elegant, full-screen distraction-free dashboard featuring:
@@ -109,7 +109,7 @@ An elegant, full-screen distraction-free dashboard featuring:
 *   White noise/lo-fi integration.
 
 ### 8. ✉️ Smart Email Nudges & Accountability Partner
-If you enter danger zones, AURA drafts structured update reports and sends accountability alerts directly to your configured guardian/partner (using the built-in Smart Email Agent), keeping you socially committed.
+If you enter danger zones, Deadline Guardian drafts structured update reports and sends accountability alerts directly to your configured guardian/partner (using the built-in Smart Email Agent), keeping you socially committed.
 
 ---
 
@@ -124,7 +124,7 @@ Deadline Guardian is built from the ground up to showcase the power of the Googl
 | **Cloud Firestore** | Real-time synchronization of missions, focus histories, and real-time active timers. | Client/Server Hybrid |
 | **Firebase Hosting** | Highly scalable, CDN-backed global deployment. | Global Edge Network |
 | **Google Calendar API** | (Concept) Real-time sync of active focus blocks into the user's primary calendar to block out distraction windows. | Server-side Integration |
-| **Google Tasks API** | (Concept) Direct injection of AURA critical subtasks back into native Google Tasks for cross-device mobile widgets. | Integration Layer |
+| **Google Tasks API** | (Concept) Direct injection of Deadline Guardian critical subtasks back into native Google Tasks for cross-device mobile widgets. | Integration Layer |
 
 ---
 
@@ -176,7 +176,7 @@ Instead of a simple list, Gemini produces an **Explainability Matrix** explainin
 
 ## 🎯 User Flow
 
-To experience AURA's full power, follow this primary user pathway:
+To experience Deadline Guardian's full power, follow this primary user pathway:
 
 ### 1. Onboarding & Partner Setup
 Configure your daily productivity parameters, peak energy hours, and the email of your designated Accountability Partner.
@@ -217,7 +217,7 @@ If you mark a subtask as failed or lag behind schedule, watch the app transition
 
 ## 🛠️ Installation & Setup
 
-Follow these steps to spin up AURA in your local development environment.
+Follow these steps to spin up Deadline Guardian in your local development environment.
 
 ### 📦 Prerequisites
 *   **Node.js**: v18.x or higher
@@ -293,7 +293,7 @@ deadline-guardian/
 
 ## 📑 Judging Criteria Alignment
 
-AURA is crafted to score maximum points under the core **Vibe2Ship** judging dimensions:
+Deadline Guardian is crafted to score maximum points under the core **Vibe2Ship** judging dimensions:
 
 *   **🏆 Product Vibe & Polish**: Leverages a highly custom design language. Uses retro brutalist panels, deep off-white and charcoal card borders, precise CSS shadows (`shadow-[4px_4px_0px_#292524]`), and highly responsive `motion` layout-shifting animations.
 *   **🛠️ Technical Execution**: Fully modular architecture splitting backend routing from high-fidelity client views. Robust error handling built around asynchronous browser APIs.
@@ -345,7 +345,6 @@ This project is licensed under the MIT License - see the [LICENSE](./LICENSE) fi
 
 ## 🛡️ Team & Credits
 
-*   **Sanish Paikarao** — Lead Fullstack Engineer & AI Integrations ([@saishivasanjeeth](https://github.com/saishivasanjeeth))
 *   **Vibe2Ship Hackathon Mentors** — Design direction & ecosystem support.
 
 *Made with 💖, focus, and a lot of caffeine.*

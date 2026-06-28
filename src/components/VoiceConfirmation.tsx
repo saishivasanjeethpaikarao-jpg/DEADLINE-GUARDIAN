@@ -59,6 +59,14 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
     setSubtasks(subtasks.filter(st => st.id !== id).map((st, idx) => ({ ...st, order: idx + 1 })));
   };
 
+  const updateSubtaskName = (id: string, name: string) => {
+    setSubtasks(subtasks.map(st => st.id === id ? { ...st, name } : st));
+  };
+
+  const updateSubtaskDuration = (id: string, durationMinutes: number) => {
+    setSubtasks(subtasks.map(st => st.id === id ? { ...st, durationMinutes: Math.max(1, durationMinutes) } : st));
+  };
+
   const handleConfirmAndSchedule = async () => {
     if (!user) return;
     setScheduling(true);
@@ -177,13 +185,13 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
           {/* Header */}
           <div className="border-b border-slate-200 dark:border-slate-800 pb-4">
             <h3 className="font-sans font-extrabold text-base text-slate-800 dark:text-slate-100">Review Planned Guardian Task</h3>
-            <p className="font-sans text-xs text-slate-400">Gemini parsed your prompt! Confirm or edit details before timeblocks are scheduled.</p>
+            <p className="font-sans text-xs text-slate-600 dark:text-slate-300 font-semibold">Gemini parsed your prompt! Confirm or edit details before timeblocks are scheduled.</p>
           </div>
 
           {/* Form Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="font-mono text-[10px] uppercase text-slate-400 font-bold block mb-1">Task Title</label>
+              <label className="font-mono text-[10px] uppercase text-slate-600 dark:text-slate-300 font-black block mb-1">Task Title</label>
               <input
                 type="text"
                 value={taskName}
@@ -193,7 +201,7 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
             </div>
 
             <div>
-              <label className="font-mono text-[10px] uppercase text-slate-400 font-bold block mb-1">Absolute Deadline</label>
+              <label className="font-mono text-[10px] uppercase text-slate-600 dark:text-slate-300 font-black block mb-1">Absolute Deadline</label>
               <input
                 type="datetime-local"
                 value={deadline}
@@ -203,7 +211,7 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
             </div>
 
             <div>
-              <label className="font-mono text-[10px] uppercase text-slate-400 font-bold block mb-1">Urgency Priority</label>
+              <label className="font-mono text-[10px] uppercase text-slate-600 dark:text-slate-300 font-black block mb-1">Urgency Priority</label>
               <select
                 value={priority}
                 onChange={(e: any) => setPriority(e.target.value)}
@@ -218,7 +226,7 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="font-mono text-[10px] uppercase text-slate-400 font-bold block mb-1">Category</label>
+                <label className="font-mono text-[10px] uppercase text-slate-600 dark:text-slate-300 font-black block mb-1">Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
@@ -234,7 +242,7 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
               </div>
 
               <div>
-                <label className="font-mono text-[10px] uppercase text-slate-400 font-bold block mb-1">Ideal Location</label>
+                <label className="font-mono text-[10px] uppercase text-slate-600 dark:text-slate-300 font-black block mb-1">Ideal Location</label>
                 <input
                   type="text"
                   value={locationHint}
@@ -246,7 +254,7 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
           </div>
 
           <div>
-            <label className="font-mono text-[10px] uppercase text-slate-400 font-bold block mb-1">Context Objective Description</label>
+            <label className="font-mono text-[10px] uppercase text-slate-600 dark:text-slate-300 font-black block mb-1">Context Objective Description</label>
             <input
               type="text"
               value={description}
@@ -257,22 +265,41 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
 
           {/* Subtask Editor */}
           <div className="space-y-3">
-            <span className="font-mono text-[10px] uppercase text-slate-400 font-bold block">Planned Subtask Blocks</span>
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-mono text-[10px] uppercase text-slate-600 dark:text-slate-300 font-black block">Planned Subtask Blocks</span>
+              <span className="font-mono text-[9px] text-indigo-500 dark:text-indigo-400 font-bold bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded-full">💡 Click fields below to edit</span>
+            </div>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
               {subtasks.map((st, idx) => (
-                <div key={st.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <div className="h-6 w-6 bg-indigo-50 dark:bg-indigo-950 rounded-full flex items-center justify-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400">
+                <div key={st.id} className="flex items-center justify-between gap-3 p-3 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-xl transition-all hover:border-slate-300 dark:hover:border-slate-800">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="h-6 w-6 bg-indigo-50 dark:bg-indigo-950 rounded-full flex items-center justify-center text-[10px] font-bold text-indigo-600 dark:text-indigo-400 shrink-0">
                       {idx + 1}
                     </div>
-                    <div>
-                      <span className="font-sans text-xs font-bold text-slate-800 dark:text-slate-100">{st.name}</span>
-                      <span className="font-mono text-[10px] text-slate-400 block">{st.durationMinutes} minutes</span>
+                    <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-2">
+                      <input
+                        type="text"
+                        value={st.name}
+                        onChange={(e) => updateSubtaskName(st.id, e.target.value)}
+                        placeholder="Subtask name..."
+                        className="flex-1 font-sans text-xs font-bold text-slate-800 dark:text-slate-100 bg-slate-50/50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-900/50 dark:hover:bg-slate-850/70 dark:focus:bg-slate-900 border border-slate-200/50 focus:border-indigo-500/35 outline-none rounded px-2.5 py-1.5 transition-all"
+                      />
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input
+                          type="number"
+                          value={st.durationMinutes}
+                          onChange={(e) => updateSubtaskDuration(st.id, Number(e.target.value))}
+                          className="w-14 text-center font-mono text-[11px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 hover:bg-indigo-100/50 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/50 border border-indigo-200/40 focus:border-indigo-500/35 rounded-lg py-1.5 focus:outline-none transition-all"
+                          min={1}
+                        />
+                        <span className="font-mono text-[9px] uppercase text-slate-400 dark:text-slate-600 font-black">Mins</span>
+                      </div>
                     </div>
                   </div>
                   <button
                     onClick={() => removeSubtask(st.id)}
-                    className="text-slate-400 hover:text-red-500 transition-colors p-1"
+                    className="text-slate-600 dark:text-slate-300 hover:text-red-500 transition-colors p-1 shrink-0"
+                    title="Remove subtask"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>

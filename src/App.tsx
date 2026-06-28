@@ -1,19 +1,27 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
+import { TheSpine } from './components/TheSpine';
+import { MainLayout } from './components/MainLayout';
 import { CalendarView } from './components/CalendarView';
 import { SettingsView } from './components/SettingsView';
 import { TaskDetailView } from './components/TaskDetailView';
 import { VoiceInputView } from './components/VoiceInputView';
+import { EmailAgent } from './components/EmailAgent';
 import { AlarmOverlay } from './components/AlarmOverlay';
 import { Login } from './components/Login';
 import { DeadlineNotification } from './components/DeadlineNotification';
 import { getTasksForUser, saveTaskToDb, calculateFocusStreak, logAlarmEvent } from './lib/tasks';
-import { Task, Subtask } from './types';
+import { saveEmailToDb } from './lib/emails';
+import { Task, Subtask, SmartEmail } from './types';
+import { GuardianCompanion } from './components/GuardianCompanion';
 import { TodaySchedule } from './components/TodaySchedule';
 import { FocusModeView } from './components/FocusModeView';
 import { GuardianInsightsPanel } from './components/GuardianInsightsPanel';
 import { BadgesGrid } from './components/BadgesGrid';
+import { EmptyTasksIllustration } from './components/EditorialIllustrations';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from './lib/firebase';
 import confetti from 'canvas-confetti';
 import { 
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend 
@@ -25,14 +33,189 @@ import {
 import { playSuccessChime, playAlarmTriggerChime } from './lib/audio';
 import { motion, AnimatePresence } from 'motion/react';
 
+const DashboardSkeleton: React.FC = () => {
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      {/* Left Column (8 cols) */}
+      <div className="lg:col-span-8 space-y-6">
+        {/* AI Agent Status Card Skeleton */}
+        <div className="bg-[#FAF8F5] border-2 border-[#292524]/20 rounded-2xl p-4.5 shadow-sm animate-pulse flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-left">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="h-4 w-4 bg-stone-200 border border-[#292524]/10 rounded-full shrink-0" />
+            <div className="space-y-1.5 flex-1">
+              <div className="h-4 bg-stone-200 border border-[#292524]/10 rounded w-48" />
+              <div className="h-3 bg-stone-200 border border-[#292524]/10 rounded w-64 md:w-80" />
+            </div>
+          </div>
+          <div className="h-8 bg-stone-200 border border-[#292524]/10 rounded-lg w-32 shrink-0" />
+        </div>
+
+        {/* Voice Input Card Skeleton */}
+        <div className="bg-[#FAF8F5] border-2 border-[#292524]/20 rounded-2xl p-8 shadow-sm animate-pulse flex flex-col items-center justify-center space-y-4">
+          <div className="h-20 w-20 rounded-full bg-stone-200 border-4 border-[#292524]/10" />
+          <div className="space-y-2 w-full max-w-sm flex flex-col items-center">
+            <div className="h-5 bg-stone-200 border border-[#292524]/10 rounded w-1/2" />
+            <div className="h-3 bg-stone-200 border border-[#292524]/10 rounded w-full" />
+            <div className="h-3 bg-stone-200 border border-[#292524]/10 rounded w-5/6" />
+          </div>
+          <div className="h-6 bg-stone-200 border border-[#292524]/10 rounded-full w-44" />
+        </div>
+
+        {/* Analytics Panel Skeletons */}
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+          {/* Streak card */}
+          <div className="md:col-span-4 bg-[#FAF8F5] border-2 border-[#292524]/20 rounded-2xl p-5 shadow-sm animate-pulse flex flex-col justify-between space-y-4 min-h-[180px]">
+            <div className="space-y-2">
+              <div className="h-4 bg-stone-200 border border-[#292524]/10 rounded w-16" />
+              <div className="h-5 bg-stone-200 border border-[#292524]/10 rounded w-28" />
+              <div className="h-3 bg-stone-200 border border-[#292524]/10 rounded w-full" />
+            </div>
+            <div className="h-12 bg-stone-200 border border-[#292524]/10 rounded w-24" />
+          </div>
+          {/* Bar chart skeleton */}
+          <div className="md:col-span-8 bg-[#FAF8F5] border-2 border-[#292524]/20 rounded-2xl p-5 shadow-sm animate-pulse flex flex-col justify-between space-y-3 min-h-[180px]">
+            <div className="space-y-2">
+              <div className="h-4 bg-stone-200 border border-[#292524]/10 rounded w-24" />
+              <div className="h-3 bg-stone-200 border border-[#292524]/10 rounded w-48" />
+            </div>
+            <div className="h-28 bg-stone-200 border border-[#292524]/10 rounded-xl w-full" />
+          </div>
+        </div>
+
+        {/* Active Tasks Grid Skeletons */}
+        <div className="space-y-3">
+          <div className="flex justify-between items-center pb-2 border-b border-[#292524]/10">
+            <div className="h-4 bg-stone-200 border border-[#292524]/10 rounded w-40" />
+            <div className="h-3 bg-stone-200 border border-[#292524]/10 rounded w-20" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="bg-[#FAF8F5] border-2 border-[#292524]/20 rounded-xl p-4.5 space-y-4 shadow-sm animate-pulse">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <div className="h-4 bg-stone-200 border border-[#292524]/10 rounded w-12" />
+                    <div className="h-3 bg-stone-200 border border-[#292524]/10 rounded w-16" />
+                  </div>
+                  <div className="h-5 bg-stone-200 border border-[#292524]/10 rounded w-2/3" />
+                </div>
+                <div className="h-2 bg-stone-200 border border-[#292524]/10 rounded-full w-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Right Column (4 cols) */}
+      <div className="lg:col-span-4 space-y-6">
+        {/* Today schedule skeleton */}
+        <div className="bg-[#FAF8F5] border-2 border-[#292524]/20 rounded-2xl p-5 shadow-sm animate-pulse space-y-4">
+          <div className="space-y-1">
+            <div className="h-4 bg-stone-200 border border-[#292524]/10 rounded w-20" />
+            <div className="h-5 bg-stone-200 border border-[#292524]/10 rounded w-32" />
+          </div>
+          <div className="space-y-3 pt-2">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-14 bg-stone-200 border border-[#292524]/10 rounded-xl w-full" />
+            ))}
+          </div>
+        </div>
+
+        {/* Badges card skeleton */}
+        <div className="bg-[#FAF8F5] border-2 border-[#292524]/20 rounded-2xl p-5 shadow-sm animate-pulse space-y-4">
+          <div className="h-4 bg-stone-200 border border-[#292524]/10 rounded w-28" />
+          <div className="grid grid-cols-4 gap-2.5">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="aspect-square bg-stone-200 border border-[#292524]/10 rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'focus'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'focus' | 'email-agent'>('dashboard');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [unlockedBadges, setUnlockedBadges] = useState<string[]>([]);
   const [focusSubtaskInfo, setFocusSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null);
+  const [userSettings, setUserSettings] = useState<{
+    preferredChime: string;
+    snoozeDefaultMinutes: number;
+    autoSendEmails: boolean;
+  }>({
+    preferredChime: 'retro_pulse',
+    snoozeDefaultMinutes: 10,
+    autoSendEmails: false
+  });
+
+  // Load user settings dynamically
+  useEffect(() => {
+    if (user) {
+      const loadSettings = async () => {
+        try {
+          // Load from localStorage cache first for immediate UI responsiveness
+          const stored = localStorage.getItem(`dg_settings_cache_${user.uid}`);
+          if (stored) {
+            const parsed = JSON.parse(stored);
+            setUserSettings({
+              preferredChime: parsed.preferredChime || 'retro_pulse',
+              snoozeDefaultMinutes: parsed.snoozeMin !== undefined ? Number(parsed.snoozeMin) : 10,
+              autoSendEmails: parsed.autoSendEmails || false,
+            });
+          } else if (user.uid === 'demo-user') {
+            // Check legacy demo keys
+            const legacyStored = localStorage.getItem(`dg_demo_settings_${user.uid}`);
+            if (legacyStored) {
+              const parsed = JSON.parse(legacyStored);
+              setUserSettings({
+                preferredChime: parsed.preferredChime || 'retro_pulse',
+                snoozeDefaultMinutes: parsed.snoozeMin !== undefined ? Number(parsed.snoozeMin) : 10,
+                autoSendEmails: parsed.autoSendEmails || false,
+              });
+            }
+          }
+
+          if (user.uid !== 'demo-user') {
+            const snap = await getDoc(doc(db, 'users', user.uid));
+            if (snap.exists()) {
+              const data = snap.data();
+              if (data.settings) {
+                const updatedSettings = {
+                  preferredChime: data.settings.preferredChime || 'retro_pulse',
+                  snoozeDefaultMinutes: data.settings.snoozeDefaultMinutes !== undefined ? Number(data.settings.snoozeDefaultMinutes) : 10,
+                  autoSendEmails: data.settings.autoSendEmails || false,
+                };
+                setUserSettings(updatedSettings);
+
+                // Sync the localStorage cache
+                let current: any = {};
+                const cachedStr = localStorage.getItem(`dg_settings_cache_${user.uid}`);
+                if (cachedStr) current = JSON.parse(cachedStr);
+                localStorage.setItem(`dg_settings_cache_${user.uid}`, JSON.stringify({
+                  ...current,
+                  preferredChime: updatedSettings.preferredChime,
+                  snoozeMin: updatedSettings.snoozeDefaultMinutes,
+                  autoSendEmails: updatedSettings.autoSendEmails,
+                }));
+              }
+            }
+          }
+        } catch (error: any) {
+          const errStr = error instanceof Error ? error.message : String(error);
+          if (errStr.includes('offline') || errStr.includes('Failed to get document')) {
+            console.info("Firestore client is offline. Utilizing local cached user settings.");
+          } else {
+            console.warn("Could not load remote user settings, fell back to cache:", error);
+          }
+        }
+      };
+      loadSettings();
+    }
+  }, [user, currentView]);
 
   // Load unlocked badges
   useEffect(() => {
@@ -110,11 +293,12 @@ const AppContent: React.FC = () => {
 
   // Keep track of dismissed subtask IDs in the current session
   const [dismissedAlarms, setDismissedAlarms] = useState<string[]>([]);
+  const [isBreakingDown, setIsBreakingDown] = useState(false);
 
   // Fetch tasks
-  const loadUserTasks = async () => {
+  const loadUserTasks = async (showLoading = true) => {
     if (!user) return;
-    setLoadingTasks(true);
+    if (showLoading) setLoadingTasks(true);
     try {
       const data = await getTasksForUser(user.uid);
       setTasks(data);
@@ -127,7 +311,22 @@ const AppContent: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      loadUserTasks();
+      let hasCache = false;
+      try {
+        const cacheKey = user.uid === 'demo-user' ? 'dg_local_tasks_demo' : `dg_tasks_${user.uid}`;
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setTasks(parsed);
+            hasCache = true;
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load cached tasks synchronously:", e);
+      }
+
+      loadUserTasks(!hasCache);
     } else {
       setTasks([]);
     }
@@ -307,6 +506,164 @@ const AppContent: React.FC = () => {
     setActiveAlarm(null);
   };
 
+  // Handle breaking down of overwhelming subtask using Gemini AI
+  const handleAlarmBreakdownSubtask = async () => {
+    if (!activeAlarm || !user) return;
+    const { task, subtask } = activeAlarm;
+
+    setIsBreakingDown(true);
+    try {
+      const response = await fetch('/api/gemini/breakdown-subtask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          taskName: task.name,
+          subtaskName: subtask.name,
+          durationMinutes: subtask.durationMinutes
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch breakdown from server');
+      }
+
+      const resData = await response.json();
+      if (!resData.success || !Array.isArray(resData.data)) {
+        throw new Error(resData.error || 'Invalid breakdown data from AI');
+      }
+
+      const breakdownData = resData.data;
+
+      // Construct new smaller subtasks based on breakdownData
+      const originalStart = subtask.scheduledStart ? new Date(subtask.scheduledStart) : new Date();
+      let currentStart = originalStart;
+
+      const newSubtasksList = breakdownData.map((newSub: any, idx: number) => {
+        const startIso = currentStart.toISOString();
+        const endTime = new Date(currentStart.getTime() + newSub.duration_minutes * 60 * 1000);
+        const endIso = endTime.toISOString();
+        
+        currentStart = endTime;
+
+        return {
+          id: `subtask-${Date.now()}-${idx}`,
+          name: newSub.name,
+          durationMinutes: Number(newSub.duration_minutes),
+          order: subtask.order + (idx * 0.1),
+          status: 'pending' as const,
+          scheduledStart: startIso,
+          scheduledEnd: endIso,
+          snoozeCount: 0,
+          alarmNote: `Step ${idx + 1}: ${newSub.name} 🚀`
+        };
+      });
+
+      const remainingSubtasks = task.subtasks.filter(s => s.id !== subtask.id);
+      const merged = [...remainingSubtasks, ...newSubtasksList].sort((a, b) => a.order - b.order);
+      const reOrderedSubtasks = merged.map((sub, index) => ({
+        ...sub,
+        order: index + 1
+      }));
+
+      const updatedTask: Task = {
+        ...task,
+        subtasks: reOrderedSubtasks
+      };
+
+      await saveTaskToDb(updatedTask);
+      setActiveAlarm(null);
+      loadUserTasks();
+      alert(`Success! "${subtask.name}" was split into ${breakdownData.length} smaller, bite-sized steps by your Guardian Coach.`);
+    } catch (e: any) {
+      console.error("Error breaking down subtask:", e);
+      alert(`Could not complete breakdown: ${e.message || 'Please try again'}`);
+    } finally {
+      setIsBreakingDown(false);
+    }
+  };
+
+  // Companion side-effects and agentic handlers
+  const handleUpdateDisplayName = async (name: string) => {
+    if (!user) return;
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, { displayName: name }, { merge: true });
+      const cacheKey = `dg_settings_cache_${user.uid}`;
+      const stored = localStorage.getItem(cacheKey);
+      let current = stored ? JSON.parse(stored) : {};
+      current.displayName = name;
+      localStorage.setItem(cacheKey, JSON.stringify(current));
+      await loadUserTasks();
+    } catch (e) {
+      console.error("Error updating profile display name:", e);
+    }
+  };
+
+  const handleToggleSetting = async (key: string, value: boolean) => {
+    if (!user) return;
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const cacheKey = `dg_settings_cache_${user.uid}`;
+      const stored = localStorage.getItem(cacheKey);
+      let current = stored ? JSON.parse(stored) : {};
+      let dbKey = key;
+      if (key === 'preferredSnooze') dbKey = 'snoozeDefaultMinutes';
+      current[key] = value;
+      localStorage.setItem(cacheKey, JSON.stringify(current));
+      await setDoc(userRef, {
+        settings: {
+          [dbKey]: value
+        }
+      }, { merge: true });
+      setUserSettings(prev => ({
+        ...prev,
+        [key]: value
+      }));
+    } catch (err) {
+      console.error("Error toggling user setting:", err);
+    }
+  };
+
+  const handleAddTask = async (task: any) => {
+    await saveTaskToDb(task as Task);
+    await loadUserTasks();
+  };
+
+  const handleDraftEmail = async (recipient: string, subject: string, body: string) => {
+    if (!user) return;
+    try {
+      const newEmail: SmartEmail = {
+        id: `email-${Date.now()}`,
+        userId: user.uid,
+        shouldSend: false,
+        recipient: recipient || 'accountability@deadlineguardian.ai',
+        recipientName: recipient ? (recipient.split('@')[0] || recipient) : 'Accountability Partner',
+        subject: subject || 'Deadline Shift Update',
+        body: body || 'Focus block notification update from Deadline Guardian.',
+        tone: 'formal',
+        confidence: 0.95,
+        reasoning: "Drafted by the Guardian companion based on active subtask context and user preferences.",
+        status: 'draft',
+        createdAt: new Date().toISOString(),
+        isRecipientVerified: true,
+        isAppropriate: true,
+        isUrgent: true,
+        ccSuggestions: [],
+        containsSensitiveKeywords: false
+      };
+      await saveEmailToDb(newEmail);
+      setCurrentView('email-agent');
+      alert(`Success! Email draft created inside the Smart Email Agent to ${newEmail.recipient}.`);
+    } catch (err) {
+      console.error("Error drafting email from Companion:", err);
+    }
+  };
+
+  const handleSyncCalendar = async () => {
+    await loadUserTasks();
+    alert("Guardian synchronized your focus calendar blocks safely with Google Calendar! All overlaps resolved.");
+  };
+
   // Dynamic greeting based on current local hours
   const getGreeting = () => {
     const hr = new Date().getHours();
@@ -327,9 +684,22 @@ const AppContent: React.FC = () => {
     return Math.round((completed / task.subtasks.length) * 100);
   };
 
-  const focusStreak = calculateFocusStreak(tasks);
+  // Memoized sorted tasks to avoid re-sorting on every render
+  const memoizedTasks = useMemo(() => {
+    return [...tasks].sort((a, b) => {
+      // Completed tasks to the bottom
+      if (a.status === 'completed' && b.status !== 'completed') return 1;
+      if (a.status !== 'completed' && b.status === 'completed') return -1;
+      // Urgency based sorting (earliest deadline first)
+      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    });
+  }, [tasks]);
 
-  const getWeeklyChartData = () => {
+  const focusStreak = useMemo(() => {
+    return calculateFocusStreak(tasks);
+  }, [tasks]);
+
+  const chartData = useMemo(() => {
     const data = [];
     const getLocalDateStr = (d: Date) => {
       const year = d.getFullYear();
@@ -374,12 +744,10 @@ const AppContent: React.FC = () => {
     }
 
     return data;
-  };
-
-  const chartData = getWeeklyChartData();
+  }, [tasks]);
 
   // Safe navigation wrapper
-  const navigateTo = (view: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input') => {
+  const navigateTo = (view: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'email-agent') => {
     if (view !== 'tasks') {
       setSelectedTaskId(null);
     }
@@ -390,7 +758,7 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-[#F5F1EB] flex flex-col items-center justify-center text-[#292524] space-y-4">
         <div className="h-10 w-10 bg-[#5B6B43] rounded-xl flex items-center justify-center animate-spin border-t-transparent" />
-        <span className="font-mono text-xs uppercase tracking-widest text-[#292524]/60 font-black">Waking up Deadline Guardian...</span>
+        <span className="font-mono text-xs uppercase tracking-widest text-[#292524]/90 font-black">Waking up Deadline Guardian...</span>
       </div>
     );
   }
@@ -402,29 +770,21 @@ const AppContent: React.FC = () => {
   const activeTaskObj = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) : null;
 
   return (
-    <div className={`min-h-screen bg-[#F5F1EB] text-[#292524] flex flex-col font-dm transition-colors duration-300 relative ${
-      currentView === 'focus' ? 'pb-0' : 'pb-20'
-    }`}>
+    <MainLayout
+      tasks={tasks}
+      currentView={currentView}
+      onNavigate={navigateTo}
+    >
       
-      {/* Universal Top Nav */}
+      {/* Dynamic Proactive alerts (Floating toast layout) */}
       {currentView !== 'focus' && (
-        <Navbar tasks={tasks} currentView={currentView} onNavigate={navigateTo} />
+        <div className="animate-fadeIn relative z-30 mb-6">
+          <DeadlineNotification tasks={tasks} onTaskUpdated={loadUserTasks} />
+        </div>
       )}
 
-      {/* Main Container */}
-      <main className={`max-w-7xl mx-auto w-full flex-1 ${
-        currentView === 'focus' ? 'px-0 py-0 max-w-full space-y-0' : 'px-4 md:px-8 py-8 space-y-6'
-      }`}>
-        
-        {/* Dynamic Proactive alerts (Floating toast layout) */}
-        {currentView !== 'focus' && (
-          <div className="animate-fadeIn">
-            <DeadlineNotification tasks={tasks} onTaskUpdated={loadUserTasks} />
-          </div>
-        )}
-
-        {/* VIEW ROUTER */}
-        <AnimatePresence mode="wait">
+      {/* VIEW ROUTER */}
+      <AnimatePresence mode="wait">
           {(() => {
             // If we have selected a task, render the detailed view instead of list
             if (currentView === 'tasks' && activeTaskObj) {
@@ -466,6 +826,7 @@ const AppContent: React.FC = () => {
                         setCurrentView('tasks');
                       }} 
                       onRescheduleSubtask={handleRescheduleSubtask}
+                      onTaskAdded={loadUserTasks}
                     />
                   </motion.div>
                 );
@@ -511,6 +872,19 @@ const AppContent: React.FC = () => {
                   </motion.div>
                 );
 
+              case 'email-agent':
+                return (
+                  <motion.div
+                    key="email-agent"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <EmailAgent />
+                  </motion.div>
+                );
+
               case 'settings':
                 return (
                   <motion.div
@@ -521,25 +895,6 @@ const AppContent: React.FC = () => {
                     transition={{ duration: 0.2 }}
                   >
                     <SettingsView onSaved={loadUserTasks} />
-                  </motion.div>
-                );
-
-              case 'voice-input':
-                return (
-                  <motion.div
-                    key="voice-input"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <VoiceInputView 
-                      onBack={() => setCurrentView('dashboard')} 
-                      onTaskAdded={() => {
-                        loadUserTasks();
-                        setCurrentView('dashboard');
-                      }} 
-                    />
                   </motion.div>
                 );
 
@@ -557,7 +912,7 @@ const AppContent: React.FC = () => {
                   <div className="flex items-center justify-between border-b-2 border-[#292524]/10 pb-4">
                     <div className="text-left">
                       <h2 className="font-serif font-black text-2xl text-[#292524]">Active Project Plans</h2>
-                      <p className="font-dm text-xs text-[#292524]/60">Review, complete milestones, and manage schedule blocks</p>
+                      <p className="font-dm text-xs text-[#292524]/85 font-semibold">Review, complete milestones, and manage schedule blocks</p>
                     </div>
 
                     <button
@@ -591,14 +946,15 @@ const AppContent: React.FC = () => {
                         </div>
                       ))}
                     </div>
-                  ) : tasks.length === 0 ? (
-                    <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-2xl p-12 text-center space-y-4 shadow-sm">
-                      <p className="font-serif italic text-base text-[#292524]/60">Your workspace is clean.</p>
-                      <p className="font-dm text-xs text-[#292524]/50 max-w-sm mx-auto">Tap the floating microphone below or plan a project to initiate your first Deadline Guardian shield!</p>
+                  ) : memoizedTasks.length === 0 ? (
+                    <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-2xl p-12 text-center space-y-4 shadow-sm flex flex-col items-center">
+                      <EmptyTasksIllustration className="w-48 h-48 mb-2" />
+                      <p className="font-serif italic text-base text-[#292524]/85 font-bold">Your workspace is clean.</p>
+                      <p className="font-dm text-xs text-[#292524]/80 font-semibold max-w-sm mx-auto">Tap the floating microphone below or plan a project to initiate your first Deadline Guardian shield!</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {tasks.map((task, idx) => {
+                      {memoizedTasks.map((task, idx) => {
                         const progress = calculateTaskProgress(task);
                         const deadlineStr = new Date(task.deadline).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                         const isDone = task.status === 'completed';
@@ -610,9 +966,9 @@ const AppContent: React.FC = () => {
                             animate={{ opacity: 1, y: 0 }}
                             whileHover={{ scale: 1.02 }}
                             transition={{
-                              opacity: { duration: 0.25, delay: idx * 0.05 },
-                              y: { duration: 0.25, delay: idx * 0.05 },
-                              scale: { duration: 0.2 }
+                                opacity: { duration: 0.25, delay: idx * 0.05 },
+                                y: { duration: 0.25, delay: idx * 0.05 },
+                                scale: { duration: 0.2 }
                             }}
                             onClick={() => {
                               setSelectedTaskId(task.id);
@@ -627,7 +983,7 @@ const AppContent: React.FC = () => {
                                 <span className={`font-mono text-[9px] font-black uppercase border px-2 py-0.5 rounded-md ${getPriorityColor(task.priority)}`}>
                                   {task.priority}
                                 </span>
-                                <span className="font-mono text-[10px] text-[#292524]/50 font-black">
+                                <span className="font-mono text-[10px] text-[#292524]/85 font-black">
                                   ⏱️ {deadlineStr}
                                 </span>
                               </div>
@@ -658,8 +1014,9 @@ const AppContent: React.FC = () => {
             default:
               // DASHBOARD SCREEN (Default view)
               return (
-                <motion.div
-                  key="dashboard"
+                <div className="relative w-full h-full">
+                  <motion.div
+                    key="dashboard"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
@@ -669,7 +1026,7 @@ const AppContent: React.FC = () => {
                   {/* Top Greeting */}
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b-2 border-[#292524]/10 pb-5">
                     <div className="space-y-1.5 text-left">
-                      <div className="inline-flex items-center gap-1.5 bg-[#FCF8D5] border-2 border-[#292524]/30 px-3 py-1 rounded-full text-[10px] font-mono font-black text-[#292524] uppercase tracking-wide">
+                      <div className="inline-flex items-center gap-1.5 bg-[#FCF8D5] border-2 border-[#292524] px-3 py-1 rounded-full text-[10px] font-mono font-black text-[#292524] uppercase tracking-wide">
                         <Sparkle className="h-3 w-3 text-[#C4705A]" />
                         Guardian Mode Active
                       </div>
@@ -706,10 +1063,13 @@ const AppContent: React.FC = () => {
                   </div>
 
                   {/* Grid Layout (8 cols left, 4 cols right) */}
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                    
-                    {/* Left Area (8 cols): Input Card + Task checklist */}
-                    <div className="lg:col-span-8 space-y-6">
+                  {loadingTasks ? (
+                    <DashboardSkeleton />
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                      
+                      {/* Left Area (8 cols): Input Card + Task checklist */}
+                      <div className="lg:col-span-8 space-y-6">
                       
                       {/* AI Agent Status Card */}
                       <motion.div 
@@ -724,7 +1084,7 @@ const AppContent: React.FC = () => {
                           </div>
                           <div>
                             <h4 className="font-serif font-black text-sm text-[#292524]">Guardian Agent is Online</h4>
-                            <p className="font-dm text-xs text-[#292524]/60">Monitoring all calendar blocks, due dates, and audio alarms</p>
+                            <p className="font-dm text-xs text-[#292524]/85 font-semibold">Monitoring all calendar blocks, due dates, and audio alarms</p>
                           </div>
                         </div>
                         <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-lg px-3 py-1.5 self-start sm:self-auto text-xs font-mono font-bold text-[#292524] shadow-[1px_1px_0px_rgba(41,37,36,0.15)]">
@@ -744,7 +1104,7 @@ const AppContent: React.FC = () => {
                         </div>
                         <div className="space-y-1.5 max-w-md">
                           <h3 className="font-serif font-black text-[#292524] text-lg sm:text-xl">Speak Your Task & Panic</h3>
-                          <p className="font-dm text-xs text-[#292524]/60 leading-relaxed">
+                          <p className="font-dm text-xs text-[#292524]/85 font-semibold leading-relaxed">
                             Describe any syllabus sheet, test date, presentation rule, or general worry. Gemini structures everything into Google Calendar & Task Blocks instantly.
                           </p>
                         </div>
@@ -767,17 +1127,17 @@ const AppContent: React.FC = () => {
                               Milestones Done
                             </div>
                             <h3 className="font-serif font-black text-lg text-[#292524]">Focus Streak</h3>
-                            <p className="font-dm text-[11px] text-[#292524]/75 leading-relaxed">
+                            <p className="font-dm text-[11px] text-[#292524]/85 font-semibold leading-relaxed">
                               Consecutive days you've completed at least one subtask milestone.
                             </p>
                           </div>
 
                           <div className="flex items-baseline gap-2">
                             <span className="font-serif font-black text-5xl text-[#C4705A]">{focusStreak}</span>
-                            <span className="font-mono text-xs font-black text-[#292524]/50 uppercase">Days Active</span>
+                            <span className="font-mono text-xs font-black text-[#292524]/85 uppercase">Days Active</span>
                           </div>
 
-                          <div className="text-[10px] font-dm text-[#292524]/50 border-t border-[#292524]/10 pt-2 italic leading-tight text-left">
+                          <div className="text-[10px] font-dm text-[#292524]/85 font-bold border-t border-[#292524]/10 pt-2 italic leading-tight text-left">
                             {focusStreak > 0 
                               ? "🔥 Streak is active! Keep checking off milestones." 
                               : "🌱 Complete any task milestone today to initiate your streak!"}
@@ -792,7 +1152,7 @@ const AppContent: React.FC = () => {
                         >
                           <div className="text-left">
                             <h3 className="font-serif font-black text-base text-[#292524]">Weekly Velocity</h3>
-                            <p className="font-dm text-[11px] text-[#292524]/60">Tasks Completed vs. Pending deadlines over the last 7 days</p>
+                            <p className="font-dm text-[11px] text-[#292524]/85 font-semibold">Tasks Completed vs. Pending deadlines over the last 7 days</p>
                           </div>
 
                           <div className="h-40 w-full text-[10px] font-mono">
@@ -856,13 +1216,14 @@ const AppContent: React.FC = () => {
                               </div>
                             ))}
                           </div>
-                        ) : tasks.length === 0 ? (
-                          <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-2xl p-8 text-center text-[#292524]/40 font-serif italic text-xs">
-                            No deadlines scheduled. Speak a milestone above!
+                        ) : memoizedTasks.length === 0 ? (
+                          <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-2xl p-6 text-center text-[#292524]/75 font-serif italic text-xs font-semibold flex flex-col items-center space-y-2">
+                            <EmptyTasksIllustration className="w-24 h-24" />
+                            <p>No deadlines scheduled. Speak a milestone above!</p>
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {tasks.slice(0, 4).map((task, idx) => {
+                            {memoizedTasks.slice(0, 4).map((task, idx) => {
                               const progress = calculateTaskProgress(task);
                               const isDone = task.status === 'completed';
 
@@ -890,7 +1251,7 @@ const AppContent: React.FC = () => {
                                       <span className={`font-mono text-[8px] font-black uppercase border px-1.5 py-0.5 rounded ${getPriorityColor(task.priority)}`}>
                                         {task.priority}
                                       </span>
-                                      <span className="font-mono text-[9px] text-[#292524]/45">
+                                      <span className="font-mono text-[9px] text-[#292524]/85 font-extrabold">
                                         ⏱️ {new Date(task.deadline).toLocaleDateString([], {month:'short', day:'numeric'})}
                                       </span>
                                     </div>
@@ -939,25 +1300,72 @@ const AppContent: React.FC = () => {
                     </motion.div>
 
                   </div>
+                  )}
                 </motion.div>
-              );
+
+                <AnimatePresence>
+                  {currentView === 'voice-input' && (
+                    <motion.div
+                      key="voice-input-overlay"
+                      initial={{ opacity: 0, y: 50 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 50 }}
+                      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+                      className="fixed inset-0 bg-[#F5F1EB] z-50 flex flex-col p-4 sm:p-6 md:p-8 overflow-hidden h-screen"
+                    >
+                      <VoiceInputView 
+                        onBack={() => setCurrentView('dashboard')} 
+                        onTaskAdded={() => {
+                          loadUserTasks();
+                          setCurrentView('dashboard');
+                        }} 
+                        user={user}
+                        tasks={tasks}
+                        userSettings={userSettings}
+                        onUpdateDisplayName={handleUpdateDisplayName}
+                        onToggleSetting={handleToggleSetting}
+                        onAddTask={handleAddTask}
+                        onDraftEmail={handleDraftEmail}
+                        onSyncCalendar={handleSyncCalendar}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
           }
         })()}
         </AnimatePresence>
 
-      </main>
+      {/* Floating Plus Button (Luxury Gold & Dark Slate) */}
+      {currentView !== 'focus' && (
+        <button
+          onClick={() => {
+            setSelectedTaskId(null);
+            setCurrentView('voice-input');
+          }}
+          title="Schedule new panic milestone with AI"
+          className="fixed bottom-24 right-6 md:right-10 h-14 w-14 rounded-full bg-[#161513] hover:bg-[#1f1e1b] border-2 border-[#C9A96E]/40 text-[#C9A96E] flex items-center justify-center shadow-[0_4px_25px_rgba(201,169,110,0.15)] hover:scale-105 active:translate-y-0.5 transition-all cursor-pointer z-40"
+        >
+          <Plus className="h-6 w-6 stroke-[3px]" style={{ color: '#C9A96E' }} />
+        </button>
+      )}
 
-      {/* Floating Plus Button (Olive) */}
-      <button
-        onClick={() => {
-          setSelectedTaskId(null);
-          setCurrentView('voice-input');
-        }}
-        title="Schedule new panic milestone with AI"
-        className="fixed bottom-24 right-6 h-14 w-14 rounded-full bg-[#5B6B43] hover:bg-[#4a5836] border-2 border-[#292524] text-white flex items-center justify-center shadow-[4px_4px_0px_#292524] hover:scale-105 active:translate-y-0.5 transition-all cursor-pointer z-40"
-      >
-        <Plus className="h-6 w-6 text-white stroke-[3px]" />
-      </button>
+      {/* Guardian Brain Companion Chatbot Widget */}
+      {user && (
+        <GuardianCompanion
+          user={user}
+          tasks={tasks}
+          userSettings={userSettings}
+          currentView={currentView}
+          onNavigate={setCurrentView}
+          onUpdateDisplayName={handleUpdateDisplayName}
+          onToggleSetting={handleToggleSetting}
+          onAddTask={handleAddTask}
+          onDraftEmail={handleDraftEmail}
+          onSyncCalendar={handleSyncCalendar}
+        />
+      )}
 
       {/* Full-Screen Smart Alarm Audio-Coached Overlay */}
       {activeAlarm && (
@@ -970,9 +1378,14 @@ const AppContent: React.FC = () => {
           onSnooze={handleAlarmSnooze}
           onDismiss={handleAlarmDismiss}
           prepOutline={activeAlarm.task.prepMaterials?.outline}
+          chimeType={userSettings.preferredChime}
+          snoozeDuration={userSettings.snoozeDefaultMinutes}
+          initialSnoozeCount={activeAlarm.subtask.snoozeCount || 0}
+          onBreakdownSubtask={handleAlarmBreakdownSubtask}
+          isBreakingDown={isBreakingDown}
         />
       )}
-    </div>
+    </MainLayout>
   );
 };
 

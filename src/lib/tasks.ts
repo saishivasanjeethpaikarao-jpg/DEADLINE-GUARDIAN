@@ -5,6 +5,7 @@ import {
   query, where, orderBy
 } from 'firebase/firestore';
 import { mockTasks } from './demoData';
+import { syncEvents } from './syncEvents';
 
 const TASKS_COLL = 'tasks';
 
@@ -32,15 +33,27 @@ export async function getTasksForUser(userId: string): Promise<Task[]> {
         userId: userId,
         createdAt: new Date().toISOString()
       }));
-      for (const task of copyTasks) {
-        await saveTaskToDb(task);
-      }
+      // Save them in the background so we don't block the UI waking up
+      copyTasks.forEach(task => {
+        saveTaskToDb(task).catch(err => console.warn("Background seed save failed:", err));
+      });
+      try {
+        localStorage.setItem(`dg_tasks_${userId}`, JSON.stringify(copyTasks));
+      } catch (lc) {}
       return copyTasks;
     }
 
+    try {
+      localStorage.setItem(`dg_tasks_${userId}`, JSON.stringify(firestoreTasks));
+    } catch (lc) {}
     return firestoreTasks;
-  } catch (e) {
-    console.error("Error fetching tasks from firestore, returning local cache:", e);
+  } catch (e: any) {
+    const errStr = e instanceof Error ? e.message : String(e);
+    if (errStr.includes('offline') || errStr.includes('Failed to get document')) {
+      console.info("Firestore client is offline. Utilizing local cached tasks list.");
+    } else {
+      console.warn("Could not fetch remote tasks, fell back to local cache:", e);
+    }
     const cached = localStorage.getItem(`dg_tasks_${userId}`);
     if (cached) return JSON.parse(cached);
     return mockTasks.map(t => ({ ...t, userId }));
@@ -51,6 +64,10 @@ export async function getTasksForUser(userId: string): Promise<Task[]> {
  * Save or update a task to DB / local fallback
  */
 export async function saveTaskToDb(task: Task): Promise<void> {
+  const isRealUser = task.userId !== 'demo-user';
+  if (isRealUser) {
+    syncEvents.emit(true, false);
+  }
   try {
     if (task.userId === 'demo-user') {
       const current = localStorage.getItem('dg_local_tasks_demo');
@@ -77,6 +94,10 @@ export async function saveTaskToDb(task: Task): Promise<void> {
       else list.unshift(task);
       localStorage.setItem(`dg_tasks_${task.userId}`, JSON.stringify(list));
     } catch (lc) {}
+    
+    if (isRealUser) {
+      syncEvents.emit(false, false);
+    }
   } catch (e) {
     console.error("Error saving task:", e);
     // Write fallback to local cache
@@ -86,6 +107,10 @@ export async function saveTaskToDb(task: Task): Promise<void> {
     if (index > -1) list[index] = task;
     else list.unshift(task);
     localStorage.setItem(`dg_tasks_${task.userId}`, JSON.stringify(list));
+    
+    if (isRealUser) {
+      syncEvents.emit(false, true);
+    }
   }
 }
 
@@ -93,6 +118,10 @@ export async function saveTaskToDb(task: Task): Promise<void> {
  * Delete a task
  */
 export async function deleteTaskFromDb(userId: string, taskId: string): Promise<void> {
+  const isRealUser = userId !== 'demo-user';
+  if (isRealUser) {
+    syncEvents.emit(true, false);
+  }
   try {
     if (userId === 'demo-user') {
       const current = localStorage.getItem('dg_local_tasks_demo');
@@ -112,8 +141,15 @@ export async function deleteTaskFromDb(userId: string, taskId: string): Promise<
         localStorage.setItem(`dg_tasks_${userId}`, JSON.stringify(list));
       }
     } catch (lc) {}
+    
+    if (isRealUser) {
+      syncEvents.emit(false, false);
+    }
   } catch (e) {
     console.error("Error deleting task:", e);
+    if (isRealUser) {
+      syncEvents.emit(false, true);
+    }
   }
 }
 
@@ -312,9 +348,10 @@ export async function getAlarmHistory(userId: string): Promise<AlarmHistoryItem[
 
     if (firestoreHistory.length === 0) {
       const mockHist = getMockAlarmHistory().map(h => ({ ...h, userId, id: `${userId}_${h.id}` }));
-      for (const h of mockHist) {
-        await setDoc(doc(db, ALARM_HISTORY_COLL, h.id), h);
-      }
+      // Save them in the background so we don't block the UI waking up
+      mockHist.forEach(h => {
+        setDoc(doc(db, ALARM_HISTORY_COLL, h.id), h).catch(err => console.warn("History background seed failed:", err));
+      });
       return mockHist;
     }
 

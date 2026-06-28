@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 export const Login: React.FC = () => {
-  const { loginWithGoogle, loading } = useAuth();
+  const { loginWithGoogle, loginAsGuest, loading } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
 
   // Playful voice feedback of the prototype coach
@@ -74,19 +74,30 @@ export const Login: React.FC = () => {
             </div>
 
             {/* Micro-Interactive Hero Button Pairing */}
-            <div className="flex flex-wrap items-center gap-3 sm:gap-4 pt-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-2">
               <button
                 onClick={loginWithGoogle}
                 disabled={loading}
-                className="bg-[#5B6B43] hover:bg-[#4d5b38] active:translate-y-0.5 disabled:opacity-50 text-[#FAF8F5] font-dm font-bold text-xs sm:text-sm px-6 sm:px-8 py-3.5 sm:py-4.5 rounded-xl shadow-[4px_4px_0px_#292524] border-2 border-[#292524] transition-all cursor-pointer flex items-center gap-2 group"
+                className="bg-[#5B6B43] hover:bg-[#4d5b38] active:translate-y-0.5 disabled:opacity-50 text-[#FAF8F5] font-dm font-bold text-xs sm:text-sm px-6 py-3.5 sm:py-4 rounded-xl shadow-[4px_4px_0px_#292524] border-2 border-[#292524] transition-all cursor-pointer flex items-center justify-center gap-2 group"
+                title="Connect with Google Calendar, Google Tasks, and Firestore database"
               >
-                <span>{loading ? 'Connecting with Google...' : 'Get Started Free'}</span>
-                <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+                <Chrome className="h-4 w-4 shrink-0 text-white" />
+                <span>{loading ? 'Connecting...' : 'Connect Google Account'}</span>
+              </button>
+
+              <button
+                onClick={loginAsGuest}
+                disabled={loading}
+                className="bg-[#C4705A] hover:bg-[#b05d49] active:translate-y-0.5 disabled:opacity-50 text-[#FAF8F5] font-dm font-bold text-xs sm:text-sm px-6 py-3.5 sm:py-4 rounded-xl shadow-[4px_4px_0px_#292524] border-2 border-[#292524] transition-all cursor-pointer flex items-center justify-center gap-2 group"
+                title="Bypass popup blocks and database issues to preview with local demo data instantly!"
+              >
+                <Sparkles className="h-4 w-4 shrink-0 text-white animate-pulse" />
+                <span>Enter Sandbox Mode (Bypass Login)</span>
               </button>
               
               <a
                 href="#how-it-works"
-                className="bg-[#FAF8F5] hover:bg-[#FAF8F5]/85 text-[#292524] border-2 border-[#292524] font-dm font-bold text-xs sm:text-sm px-4 sm:px-6 py-3 sm:py-4 rounded-xl shadow-[3px_3px_0px_#292524] hover:shadow-[5px_5px_0px_#292524] transition-all flex items-center justify-center cursor-pointer"
+                className="bg-[#FAF8F5] hover:bg-[#FAF8F5]/85 text-[#292524] border-2 border-[#292524] font-dm font-bold text-xs sm:text-sm px-4 py-3 sm:py-4 rounded-xl shadow-[3px_3px_0px_#292524] hover:shadow-[5px_5px_0px_#292524] transition-all flex items-center justify-center cursor-pointer"
               >
                 How it works
               </a>

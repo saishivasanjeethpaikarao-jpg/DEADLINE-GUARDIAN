@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Play, Clock, X, BookOpen, Volume2, ShieldAlert, Sparkles, AlertOctagon } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { playChime } from '../lib/audio';
 
 interface AlarmOverlayProps {
   taskName: string;
@@ -11,6 +12,11 @@ interface AlarmOverlayProps {
   onSnooze: (minutes: number) => void;
   onDismiss: () => void;
   prepOutline?: string;
+  chimeType?: string;
+  snoozeDuration?: number;
+  initialSnoozeCount?: number;
+  onBreakdownSubtask?: () => void;
+  isBreakingDown?: boolean;
 }
 
 export const AlarmOverlay: React.FC<AlarmOverlayProps> = ({
@@ -21,9 +27,15 @@ export const AlarmOverlay: React.FC<AlarmOverlayProps> = ({
   onStart,
   onSnooze,
   onDismiss,
-  prepOutline
+  prepOutline,
+  chimeType,
+  snoozeDuration,
+  initialSnoozeCount = 0,
+  onBreakdownSubtask,
+  isBreakingDown = false
 }) => {
-  const [snoozeCount, setSnoozeCount] = useState(0);
+  const [snoozeCount, setSnoozeCount] = useState(initialSnoozeCount);
+  const [showGuardianTipModal, setShowGuardianTipModal] = useState(initialSnoozeCount > 3);
   const [speakActive, setSpeakActive] = useState(false);
   const [showPrepPreview, setShowPrepPreview] = useState(false);
 
@@ -49,36 +61,33 @@ export const AlarmOverlay: React.FC<AlarmOverlayProps> = ({
   useEffect(() => {
     triggerVoiceSynthesis();
     
-    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-    const playBeep = () => {
+    const playAlarmChime = () => {
       try {
-        const osc = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        osc.connect(gain);
-        gain.connect(audioContext.destination);
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(800, audioContext.currentTime);
-        gain.gain.setValueAtTime(0.04, audioContext.currentTime);
-        osc.start();
-        osc.stop(audioContext.currentTime + 0.18);
+        playChime(chimeType || 'retro_pulse');
       } catch (err) {}
     };
 
-    const beepInterval = setInterval(playBeep, 4500);
-    playBeep();
+    const chimeInterval = setInterval(playAlarmChime, 4500);
+    playAlarmChime();
 
     return () => {
-      clearInterval(beepInterval);
+      clearInterval(chimeInterval);
       if ('speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [note]);
+  }, [note, chimeType]);
 
   const handleSnooze = () => {
-    const minutes = snoozeCount >= 2 ? 5 : 10;
-    setSnoozeCount(c => c + 1);
-    onSnooze(minutes);
+    const nextCount = snoozeCount + 1;
+    if (nextCount > 3) {
+      setShowGuardianTipModal(true);
+      setSnoozeCount(nextCount);
+    } else {
+      const minutes = snoozeDuration || 10;
+      setSnoozeCount(nextCount);
+      onSnooze(minutes);
+    }
   };
 
   const handleStartWork = () => {
@@ -230,6 +239,81 @@ export const AlarmOverlay: React.FC<AlarmOverlayProps> = ({
         )}
 
       </div>
+
+      {showGuardianTipModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-[#292524]/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-md bg-[#FAF8F5] border-4 border-[#292524] rounded-2xl p-6 sm:p-8 shadow-[8px_8px_0px_#292524] relative text-center space-y-4">
+            
+            {/* Close modal button */}
+            <button
+              onClick={() => setShowGuardianTipModal(false)}
+              className="absolute top-4 right-4 text-[#292524]/50 hover:text-[#292524] transition-colors"
+              title="Close"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Icon header */}
+            <div className="mx-auto h-16 w-16 bg-[#FCF8D5] border-2 border-[#292524] rounded-full flex items-center justify-center shadow-[2px_2px_0px_#292524]">
+              <Sparkles className="h-8 w-8 text-[#5B6B43] animate-pulse" />
+            </div>
+
+            <div className="space-y-1.5">
+              <span className="font-mono text-[9px] font-black tracking-widest text-[#5B6B43] uppercase block">
+                🛡️ GUARDIAN COACH TIP
+              </span>
+              <h2 className="font-serif font-black text-xl text-[#292524]">
+                Feeling stuck on this step?
+              </h2>
+              <p className="font-dm text-xs text-[#292524]/75 leading-relaxed">
+                You've snoozed <strong>"{subtaskName}"</strong> more than 3 times ({snoozeCount} times). It's totally normal to procrastinate when a milestone feels too large or unclear.
+              </p>
+            </div>
+
+            <div className="bg-[#FCF8D5]/60 border border-[#292524]/20 rounded-xl p-3">
+              <p className="font-serif italic font-bold text-xs text-[#292524]/80 leading-relaxed text-center">
+                "The secret to getting ahead is getting started. The secret to getting started is breaking your complex overwhelming tasks into small manageable tasks."
+              </p>
+            </div>
+
+            <div className="space-y-2 pt-2">
+              <button
+                onClick={onBreakdownSubtask}
+                disabled={isBreakingDown}
+                className="w-full bg-[#5B6B43] hover:bg-[#4a5836] disabled:bg-[#5B6B43]/70 text-[#FAF8F5] font-dm font-black text-xs tracking-wide py-3 rounded-xl border-2 border-[#292524] shadow-[3px_3px_0px_#292524] flex items-center justify-center gap-2 transition-all cursor-pointer hover:scale-[1.01] active:translate-y-0.5"
+              >
+                {isBreakingDown ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    <span>COACH IS GENERATING BITES...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 fill-white text-white" />
+                    <span>YES, BREAK IT DOWN FOR ME!</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => {
+                  setShowGuardianTipModal(false);
+                  const minutes = snoozeDuration || 10;
+                  onSnooze(minutes);
+                }}
+                disabled={isBreakingDown}
+                className="w-full bg-white hover:bg-[#F5F1EB] text-[#292524] border-2 border-[#292524] text-xs font-dm font-bold py-2.5 rounded-xl shadow-[2px_2px_0px_#292524] transition-all active:translate-y-0.5 cursor-pointer block"
+              >
+                No, just snooze it for now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

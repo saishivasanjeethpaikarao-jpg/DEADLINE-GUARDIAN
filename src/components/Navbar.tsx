@@ -16,7 +16,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   currentView, 
   onNavigate 
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, darkMode } = useAuth();
   const streak = calculateStreak(tasks);
 
   const navItems = [
@@ -34,7 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo and Brand */}
           <div className="cursor-pointer" onClick={() => onNavigate('dashboard')}>
-            <Logo variant="horizontal" isDarkBg={false} />
+            <Logo variant="horizontal" isDarkBg={darkMode} />
           </div>
 
           {/* User profile & actions */}

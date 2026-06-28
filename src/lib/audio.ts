@@ -81,6 +81,124 @@ export const playAlarmTriggerChime = () => {
   }
 };
 
+/**
+ * Customizable Chime Sound Player based on User Preference
+ */
+export const playChime = (chimeType: string) => {
+  try {
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    const now = ctx.currentTime;
+
+    if (chimeType === 'zen_gong') {
+      // Low-frequency deep resonant gong
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(146.83, now); // D3 note
+      
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(250, now);
+
+      gain.gain.setValueAtTime(0.0, now);
+      gain.gain.linearRampToValueAtTime(0.25, now + 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      
+      osc.start(now);
+      osc.stop(now + 2.6);
+    } else if (chimeType === 'drill_sergeant') {
+      // Urgent triple high-frequency alert pulse
+      for (let i = 0; i < 3; i++) {
+        const time = now + i * 0.2;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(987.77, time); // B5 note
+        
+        gain.gain.setValueAtTime(0.0, time);
+        gain.gain.linearRampToValueAtTime(0.06, time + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.18);
+      }
+    } else if (chimeType === 'loving_call') {
+      // Comforting and soft major chord progression
+      const freqs = [523.25, 659.25, 783.99]; // C5, E5, G5
+      freqs.forEach((freq, idx) => {
+        const time = now + idx * 0.12;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, time);
+        
+        gain.gain.setValueAtTime(0.0, time);
+        gain.gain.linearRampToValueAtTime(0.12, time + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, time + 0.45);
+        
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(time);
+        osc.stop(time + 0.5);
+      });
+    } else if (chimeType === 'digital_beep') {
+      // Standard crisp 800Hz beep sound
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      
+      gain.gain.setValueAtTime(0.0, now);
+      gain.gain.linearRampToValueAtTime(0.08, now + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.22);
+    } else {
+      // Default / retro_pulse: A4 -> C#5 retro triangle waves
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(440, now);
+      gain1.gain.setValueAtTime(0.1, now);
+      gain1.gain.linearRampToValueAtTime(0.001, now + 0.15);
+      
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.2);
+      
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(554.37, now + 0.2);
+      gain2.gain.setValueAtTime(0.1, now + 0.2);
+      gain2.gain.linearRampToValueAtTime(0.001, now + 0.35);
+      
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.2);
+      osc2.stop(now + 0.4);
+    }
+  } catch (error) {
+    console.warn("Chime playback failed:", error);
+  }
+};
+
 // ==================== AMBIENT AUDIO FOCUS HUM ====================
 let ambientFocusOscillator: any = null;
 let ambientFocusGain: any = null;

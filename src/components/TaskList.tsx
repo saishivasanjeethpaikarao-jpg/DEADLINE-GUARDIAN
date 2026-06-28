@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Task, Subtask } from '../types';
 import { saveTaskToDb, deleteTaskFromDb } from '../lib/tasks';
 import { playSuccessChime } from '../lib/audio';
+import { generateGoogleCalendarLink, generateIcsFile } from '../lib/calendarSync';
 import confetti from 'canvas-confetti';
 import {
   Clock, CheckCircle2, AlertTriangle, Play, Flame, ChevronRight,
@@ -21,6 +22,24 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
   const [copiedTemplateIdx, setCopiedTemplateIdx] = useState<number | null>(null);
   const [emailSending, setEmailSending] = useState(false);
   const [rescheduling, setRescheduling] = useState<string | null>(null);
+  const [taskGrouping, setTaskGrouping] = useState<'all' | 'high' | 'today' | 'progress'>('all');
+
+  const filteredTasks = tasks.filter(task => {
+    if (taskGrouping === 'high') {
+      return task.priority === 'critical' || task.priority === 'high';
+    }
+    if (taskGrouping === 'today') {
+      const d = new Date(task.deadline);
+      const today = new Date();
+      return d.getDate() === today.getDate() &&
+             d.getMonth() === today.getMonth() &&
+             d.getFullYear() === today.getFullYear();
+    }
+    if (taskGrouping === 'progress') {
+      return task.status !== 'completed';
+    }
+    return true;
+  });
 
   const getPriorityBadge = (p: string) => {
     switch (p) {
@@ -154,14 +173,72 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Dynamic View Toggle & Grouping Selector */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-[#F5F1EB] border-2 border-[#292524]/10 rounded-2xl">
+        <span className="font-serif font-black text-xs text-[#292524] uppercase tracking-wider">
+          Filter & Group Projects
+        </span>
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setTaskGrouping('all')}
+            className={`px-3.5 py-1.5 rounded-lg text-[10px] font-dm font-black uppercase tracking-wider transition-all cursor-pointer ${
+              taskGrouping === 'all'
+                ? 'bg-[#5B6B43] text-[#FAF8F5] border border-[#292524] shadow-[1px_1px_0px_#292524]'
+                : 'bg-transparent text-[#292524]/60 hover:text-[#292524] hover:bg-[#FAF8F5]/55'
+            }`}
+          >
+            All Plans ({tasks.length})
+          </button>
+          <button
+            onClick={() => setTaskGrouping('high')}
+            className={`px-3.5 py-1.5 rounded-lg text-[10px] font-dm font-black uppercase tracking-wider transition-all cursor-pointer ${
+              taskGrouping === 'high'
+                ? 'bg-[#C4705A] text-[#FAF8F5] border border-[#292524] shadow-[1px_1px_0px_#292524]'
+                : 'bg-transparent text-[#292524]/60 hover:text-[#292524] hover:bg-[#FAF8F5]/55'
+            }`}
+          >
+            ⚠️ High Priority ({tasks.filter(t => t.priority === 'critical' || t.priority === 'high').length})
+          </button>
+          <button
+            onClick={() => setTaskGrouping('today')}
+            className={`px-3.5 py-1.5 rounded-lg text-[10px] font-dm font-black uppercase tracking-wider transition-all cursor-pointer ${
+              taskGrouping === 'today'
+                ? 'bg-[#C9A96E] text-[#292524] border border-[#292524] shadow-[1px_1px_0px_#292524]'
+                : 'bg-transparent text-[#292524]/60 hover:text-[#292524] hover:bg-[#FAF8F5]/55'
+            }`}
+          >
+            📅 Due Today ({tasks.filter(t => {
+              const d = new Date(t.deadline);
+              const today = new Date();
+              return d.getDate() === today.getDate() && d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear();
+            }).length})
+          </button>
+          <button
+            onClick={() => setTaskGrouping('progress')}
+            className={`px-3.5 py-1.5 rounded-lg text-[10px] font-dm font-black uppercase tracking-wider transition-all cursor-pointer ${
+              taskGrouping === 'progress'
+                ? 'bg-[#5B6B43] text-[#FAF8F5] border border-[#292524] shadow-[1px_1px_0px_#292524]'
+                : 'bg-transparent text-[#292524]/60 hover:text-[#292524] hover:bg-[#FAF8F5]/55'
+            }`}
+          >
+            ⚡ In Progress ({tasks.filter(t => t.status !== 'completed').length})
+          </button>
+        </div>
+      </div>
+
       {tasks.length === 0 ? (
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-10 border border-slate-200 dark:border-slate-700 text-center space-y-3">
-          <p className="font-sans text-sm text-slate-500 dark:text-slate-400">No active Deadline Guardian plans found.</p>
-          <p className="font-sans text-xs text-slate-400">Tap the voice mic or enter a prompt above to create your first guardian workspace!</p>
+          <p className="font-sans text-sm text-slate-700 font-bold dark:text-slate-200">No active Deadline Guardian plans found.</p>
+          <p className="font-sans text-xs text-slate-600 font-semibold dark:text-slate-300">Tap the voice mic or enter a prompt above to create your first guardian workspace!</p>
+        </div>
+      ) : filteredTasks.length === 0 ? (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700 space-y-2 shadow-sm">
+          <p className="font-serif italic text-sm text-[#292524] font-bold dark:text-stone-300">No active projects match this filter.</p>
+          <p className="font-dm text-xs text-stone-500 font-semibold">Try switching back to 'All Plans' or scheduling a new project.</p>
         </div>
       ) : (
-        tasks.map((task) => {
+        filteredTasks.map((task) => {
           const isExpanded = expandedTaskId === task.id;
           const progress = calculateTaskProgress(task);
           const formattedDeadline = new Date(task.deadline).toLocaleString([], {
@@ -192,13 +269,13 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
                       </h4>
                       {getPriorityBadge(task.priority)}
                     </div>
-                    <p className="font-sans text-xs text-slate-500 dark:text-slate-400 max-w-lg line-clamp-1">
+                    <p className="font-sans text-xs text-slate-700 font-semibold dark:text-slate-200 max-w-lg line-clamp-1">
                       {task.description || "Active plan scheduled automatically."}
                     </p>
-                    <div className="flex flex-wrap items-center gap-3 font-sans text-[11px] text-slate-400">
+                    <div className="flex flex-wrap items-center gap-3 font-sans text-[11px] text-slate-600 font-bold dark:text-slate-300">
                       <span className="flex items-center gap-1">
-                        <Clock className="h-3.5 w-3.5 text-slate-400" />
-                        Deadline: <strong className="text-slate-600 dark:text-slate-300">{formattedDeadline}</strong>
+                        <Clock className="h-3.5 w-3.5 text-slate-600 dark:text-slate-300" />
+                        Deadline: <strong className="text-slate-800 dark:text-slate-100 font-black">{formattedDeadline}</strong>
                       </span>
                       {task.locationHint && (
                         <span>📍 {task.locationHint}</span>
@@ -210,7 +287,7 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
                 {/* Progress / Right Action bar */}
                 <div className="flex items-center justify-between md:justify-end gap-6 shrink-0 border-t md:border-t-0 border-slate-100 dark:border-slate-700/50 pt-3 md:pt-0">
                   <div className="text-left md:text-right space-y-1">
-                    <span className="font-mono text-[10px] uppercase text-slate-400 block font-bold">Planned Progress</span>
+                    <span className="font-mono text-[10px] uppercase text-slate-600 dark:text-slate-300 block font-extrabold">Planned Progress</span>
                     <div className="flex items-center gap-2">
                       <div className="w-20 md:w-24 bg-slate-100 dark:bg-slate-900 h-2 rounded-full overflow-hidden">
                         <div
@@ -221,7 +298,7 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
                       <span className="font-sans text-xs font-bold text-slate-700 dark:text-slate-300">{progress}%</span>
                     </div>
                   </div>
-                  <div className="text-slate-400 p-1 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                  <div className="text-slate-600 dark:text-slate-300 p-1 bg-slate-50 dark:bg-slate-900 rounded-lg">
                     {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
                   </div>
                 </div>
@@ -234,7 +311,7 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
                     {/* Left: Subtask Checklist */}
                     <div className="lg:col-span-6 space-y-3">
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono text-[10px] uppercase text-slate-400 font-bold">Milestone checklist</span>
+                        <span className="font-mono text-[10px] uppercase text-slate-600 dark:text-slate-300 font-extrabold">Milestone checklist</span>
                         <button
                           onClick={() => handleTriggerReschedule(task)}
                           disabled={rescheduling === task.id}
@@ -273,15 +350,15 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
                                 )}
                               </div>
                               <div className="space-y-0.5 flex-1">
-                                <span className={`font-sans text-xs font-bold block ${isDone ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                                <span className={`font-sans text-xs font-extrabold block ${isDone ? 'line-through text-slate-500' : 'text-slate-900 dark:text-slate-100'}`}>
                                   {st.name}
                                 </span>
                                 {st.alarmNote && (
-                                  <span className="font-sans text-[11px] text-indigo-500 dark:text-indigo-400/80 block italic leading-tight">
+                                  <span className="font-sans text-[11px] text-indigo-600 dark:text-indigo-300 block italic leading-tight font-semibold">
                                     💡 Coach Alert: {st.alarmNote}
                                   </span>
                                 )}
-                                <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-400 pt-1">
+                                <div className="flex items-center gap-1.5 font-mono text-[10px] text-slate-600 dark:text-slate-300 font-bold pt-1">
                                   <span>📅 {dateLabel} @ {startTime}</span>
                                   <span>•</span>
                                   <span>⏱️ {st.durationMinutes} mins</span>
@@ -315,16 +392,16 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
                           <div className="space-y-4 max-h-[350px] overflow-y-auto pr-1">
                             {/* Outline Section */}
                             <div className="space-y-1.5">
-                              <span className="font-mono text-[9px] uppercase text-slate-400 font-bold block">Presentation & Concept Outline</span>
-                              <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-850 text-xs text-slate-700 dark:text-slate-300 font-sans whitespace-pre-line leading-relaxed">
+                              <span className="font-mono text-[9px] uppercase text-slate-600 dark:text-slate-300 font-extrabold block">Presentation & Concept Outline</span>
+                              <div className="bg-slate-50 dark:bg-slate-900 p-3 rounded-lg border border-slate-100 dark:border-slate-850 text-xs text-slate-800 dark:text-slate-200 font-sans whitespace-pre-line leading-relaxed font-semibold">
                                 {task.prepMaterials.outline}
                               </div>
                             </div>
 
                             {/* Talking points */}
                             <div className="space-y-1.5">
-                              <span className="font-mono text-[9px] uppercase text-slate-400 font-bold block">Key Discussion Talking Points</span>
-                              <ul className="list-disc list-inside space-y-1 text-xs text-slate-600 dark:text-slate-400 font-sans pl-1">
+                              <span className="font-mono text-[9px] uppercase text-slate-600 dark:text-slate-300 font-extrabold block">Key Discussion Talking Points</span>
+                              <ul className="list-disc list-inside space-y-1 text-xs text-slate-700 dark:text-slate-200 font-sans pl-1 font-semibold">
                                 {task.prepMaterials.talkingPoints.map((tp, idx) => (
                                   <li key={idx} className="leading-snug">{tp}</li>
                                 ))}
@@ -333,14 +410,14 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
 
                             {/* Resource Links */}
                             <div className="space-y-1.5">
-                              <span className="font-mono text-[9px] uppercase text-slate-400 font-bold block">Suggested Learning Resources</span>
+                              <span className="font-mono text-[9px] uppercase text-slate-600 dark:text-slate-300 font-extrabold block">Suggested Learning Resources</span>
                               <div className="flex flex-col gap-1.5">
                                 {task.prepMaterials.resources.map((res, idx) => (
                                   <a
                                     key={idx}
                                     href="#"
                                     onClick={(e) => { e.preventDefault(); alert(`Opening Resource material for: ${res}`); }}
-                                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-sans font-medium"
+                                    className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 font-sans font-extrabold"
                                   >
                                     <ExternalLink className="h-3 w-3" />
                                     {res}
@@ -351,10 +428,10 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
 
                             {/* Practice questions */}
                             <div className="space-y-1.5">
-                              <span className="font-mono text-[9px] uppercase text-slate-400 font-bold block">Self Reflection Questions</span>
+                              <span className="font-mono text-[9px] uppercase text-slate-600 dark:text-slate-300 font-extrabold block">Self Reflection Questions</span>
                               <div className="space-y-1.5 pl-1">
                                 {task.prepMaterials.practiceQuestions.map((q, idx) => (
-                                  <p key={idx} className="text-xs font-medium text-slate-700 dark:text-slate-300 font-sans">
+                                  <p key={idx} className="text-xs font-bold text-slate-800 dark:text-slate-200 font-sans">
                                     {idx + 1}. {q}
                                   </p>
                                 ))}
@@ -363,21 +440,21 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
 
                             {/* Copyable Email Templates */}
                             <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-900">
-                              <span className="font-mono text-[9px] uppercase text-slate-400 font-bold block">Pre-drafted Professional Emails</span>
+                              <span className="font-mono text-[9px] uppercase text-slate-600 dark:text-slate-300 font-extrabold block">Pre-drafted Professional Emails</span>
                               <div className="space-y-2">
                                 {task.prepMaterials.emailTemplates?.map((tmpl, idx) => (
                                   <div key={idx} className="border border-slate-100 dark:border-slate-850 rounded-xl p-3 bg-slate-50/50 dark:bg-slate-900/40 space-y-2">
                                     <div className="flex items-center justify-between">
-                                      <span className="font-sans font-bold text-[11px] text-slate-800 dark:text-slate-200">{tmpl.name}</span>
+                                      <span className="font-sans font-bold text-[11px] text-slate-850 dark:text-slate-100">{tmpl.name}</span>
                                       <button
                                         onClick={() => copyToClipboard(tmpl.body, idx)}
-                                        className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 p-1 flex items-center gap-1 transition-colors cursor-pointer"
+                                        className="text-slate-600 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 p-1 flex items-center gap-1 transition-colors cursor-pointer font-bold"
                                       >
                                         <Copy className="h-3 w-3" />
                                         <span className="text-[9px] uppercase font-bold">{copiedTemplateIdx === idx ? 'Copied' : 'Copy'}</span>
                                       </button>
                                     </div>
-                                    <p className="font-sans text-[10px] text-slate-500 dark:text-slate-400 line-clamp-3 bg-white dark:bg-slate-950 p-2 rounded-lg border border-slate-100 dark:border-slate-900 leading-normal">
+                                    <p className="font-sans text-[10px] text-slate-700 dark:text-slate-200 line-clamp-3 bg-white dark:bg-slate-950 p-2 rounded-lg border border-slate-100 dark:border-slate-900 leading-normal font-semibold">
                                       {tmpl.body}
                                     </p>
                                   </div>
@@ -386,7 +463,7 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
                             </div>
                           </div>
                         ) : (
-                          <div className="text-center py-6 text-slate-400">
+                          <div className="text-center py-6 text-slate-600 dark:text-slate-300 font-bold">
                             <p className="font-sans text-xs">No learning materials generated. Ensure Gemini keys are active.</p>
                           </div>
                         )}
@@ -395,21 +472,45 @@ export const TaskList: React.FC<TaskListProps> = ({ tasks, onTaskUpdated, onSele
                   </div>
 
                   {/* Actions Bar */}
-                  <div className="border-t border-slate-150 dark:border-slate-750 pt-4 flex items-center justify-between">
-                    <button
-                      onClick={() => handleTriggerReschedule(task)}
-                      className="text-indigo-600 dark:text-indigo-400 hover:underline text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                    >
-                      <ArrowRightLeft className="h-4 w-4" />
-                      Adjust & Shift Timeblocks
-                    </button>
-                    <button
-                      onClick={() => handleDeleteTask(task.id)}
-                      className="text-red-500 hover:text-red-600 hover:underline text-xs font-semibold flex items-center gap-1 cursor-pointer"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete Project Plan
-                    </button>
+                  <div className="border-t border-slate-150 dark:border-slate-750 pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button
+                        onClick={() => handleTriggerReschedule(task)}
+                        className="text-indigo-600 dark:text-indigo-400 hover:underline text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <ArrowRightLeft className="h-4 w-4" />
+                        Adjust & Shift Timeblocks
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTask(task.id)}
+                        className="text-red-500 hover:text-red-600 hover:underline text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Delete Project Plan
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-mono text-[9px] uppercase text-stone-500 font-extrabold block">Calendar Sync:</span>
+                      <a
+                        href={generateGoogleCalendarLink(task)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-white hover:bg-stone-50 text-indigo-600 border border-slate-200 dark:border-slate-700 text-[10px] font-dm font-bold uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Add to Google Calendar"
+                      >
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        Google Calendar
+                      </a>
+                      <button
+                        onClick={() => generateIcsFile(task)}
+                        className="bg-white hover:bg-stone-50 text-emerald-600 border border-slate-200 dark:border-slate-700 text-[10px] font-dm font-bold uppercase px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                        title="Download standard .ics file"
+                      >
+                        <CalendarDays className="h-3.5 w-3.5" />
+                        Offline ICS
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Task } from '../types';
 import { 
-  Sparkles, RefreshCw, AlertTriangle, ArrowRight, CheckCircle2, Flame, HelpCircle 
+  Sparkles, RefreshCw, AlertTriangle, ArrowRight, Flame 
 } from 'lucide-react';
 
 interface Insight {
@@ -24,6 +24,20 @@ export const GuardianInsightsPanel: React.FC<GuardianInsightsPanelProps> = ({ ta
   const [error, setError] = useState<string | null>(null);
 
   const fetchInsights = async () => {
+    if (!tasks || tasks.length === 0) {
+      setInsights([
+        {
+          id: 'offline_1',
+          type: 'motivation',
+          urgency: 'medium',
+          title: 'Immediate Momentum Booster',
+          message: 'Procrastination loops trigger most often when milestones feel massive. Plan or speak a task to launch active coaching insights!',
+          actionLabel: 'Launch Focus'
+        }
+      ]);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -95,11 +109,11 @@ export const GuardianInsightsPanel: React.FC<GuardianInsightsPanelProps> = ({ ta
   const getUrgencyStyles = (urgency: string) => {
     switch (urgency) {
       case 'high':
-        return 'bg-red-50 border-red-200 text-red-800 dark:bg-red-950/20 dark:border-red-900 dark:text-red-300';
+        return 'bg-red-50 border-red-200 text-red-800';
       case 'medium':
-        return 'bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900 dark:text-amber-300';
+        return 'bg-amber-50 border-amber-200 text-amber-800';
       default:
-        return 'bg-indigo-50 border-indigo-100 text-indigo-800 dark:bg-indigo-950/20 dark:border-indigo-900/40 dark:text-indigo-300';
+        return 'bg-indigo-50 border-indigo-100 text-indigo-800';
     }
   };
 
@@ -115,7 +129,7 @@ export const GuardianInsightsPanel: React.FC<GuardianInsightsPanelProps> = ({ ta
   };
 
   return (
-    <div className="bg-white dark:bg-slate-800 border-2 border-[#292524] rounded-2xl p-6 shadow-[6px_6px_0px_#292524] space-y-5 text-left text-[#292524]" id="guardian-insights-panel">
+    <div className="bg-white border-2 border-[#292524] rounded-2xl p-6 shadow-[6px_6px_0px_#292524] space-y-5 text-left text-[#292524]" id="guardian-insights-panel">
       {/* Panel Header */}
       <div className="flex items-center justify-between border-b border-[#292524]/10 pb-3">
         <div className="flex items-center gap-2.5">
@@ -123,8 +137,8 @@ export const GuardianInsightsPanel: React.FC<GuardianInsightsPanelProps> = ({ ta
             <Sparkles className="h-4.5 w-4.5 animate-pulse" />
           </div>
           <div>
-            <h3 className="font-serif font-black text-base">Guardian AI Insights</h3>
-            <p className="font-dm text-xs text-[#292524]/50">Dynamic progress intelligence by Gemini 3.5 Flash</p>
+            <h3 className="font-serif font-black text-base text-[#292524]">Guardian AI Insights</h3>
+            <p className="font-dm text-xs text-[#292524]/85 font-semibold">Dynamic progress intelligence by Gemini 3.5 Flash</p>
           </div>
         </div>
 
@@ -142,19 +156,19 @@ export const GuardianInsightsPanel: React.FC<GuardianInsightsPanelProps> = ({ ta
       <div className="space-y-3.5">
         {loading ? (
           <div className="py-8 space-y-4">
-            <div className="flex items-center justify-center gap-2 font-dm text-xs text-stone-500 italic">
+            <div className="flex items-center justify-center gap-2 font-dm text-xs text-stone-700 italic font-bold">
               <RefreshCw className="h-4 w-4 animate-spin text-[#5B6B43]" />
               Analyzing active deadlines and snooze triggers...
             </div>
             {/* Loading skeletons */}
             <div className="space-y-2.5">
               {[1, 2].map(i => (
-                <div key={i} className="animate-pulse bg-stone-100 dark:bg-slate-700 h-16 rounded-xl border border-stone-200 dark:border-slate-600 w-full" />
+                <div key={i} className="animate-pulse bg-stone-100 h-16 rounded-xl border border-stone-200 w-full" />
               ))}
             </div>
           </div>
         ) : insights.length === 0 ? (
-          <div className="py-8 text-center text-stone-400 font-dm text-xs italic">
+          <div className="py-8 text-center text-stone-750 font-dm text-xs font-bold">
             Gathering data. Create some tasks to feed the Guardian AI engine!
           </div>
         ) : (
@@ -165,14 +179,18 @@ export const GuardianInsightsPanel: React.FC<GuardianInsightsPanelProps> = ({ ta
                 className={`p-4 border-2 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all hover:translate-x-1 ${getUrgencyStyles(insight.urgency)}`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="p-1.5 bg-white dark:bg-slate-900 rounded-lg border border-[#292524]/10 shrink-0 mt-0.5 shadow-sm">
+                  <div className="p-1.5 bg-white rounded-lg border border-[#292524]/10 shrink-0 mt-0.5 shadow-sm">
                     {getInsightIcon(insight.type)}
                   </div>
                   <div className="space-y-1">
-                    <h4 className="font-serif font-black text-sm text-[#292524]">
+                    <h4 className="font-serif font-black text-sm text-inherit">
                       {insight.title}
                     </h4>
-                    <p className="font-dm text-xs text-stone-600 dark:text-stone-300 leading-relaxed max-w-xl">
+                    <p className={`font-dm text-xs leading-relaxed max-w-xl ${
+                      insight.urgency === 'high' ? 'text-red-955 font-bold' :
+                      insight.urgency === 'medium' ? 'text-amber-950 font-bold' :
+                      'text-indigo-950 font-bold'
+                    }`}>
                       {insight.message}
                     </p>
                   </div>

@@ -16,9 +16,11 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// Scopes required for complete Google Workspace calendar integration
+// Scopes required for complete Google Workspace calendar integration and Gmail Agent
 googleProvider.addScope('https://www.googleapis.com/auth/calendar');
 googleProvider.addScope('https://www.googleapis.com/auth/tasks');
+googleProvider.addScope('https://www.googleapis.com/auth/gmail.send');
+googleProvider.addScope('https://www.googleapis.com/auth/gmail.readonly');
 
 export const db = getFirestore(app);
 export { app };

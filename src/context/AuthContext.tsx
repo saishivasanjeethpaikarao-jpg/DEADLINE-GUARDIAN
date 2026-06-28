@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, signInWithPopup, signOut, onAuthStateChanged, GoogleAuthProvider } from 'firebase/auth';
 import { auth, googleProvider, db } from '../lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { syncEvents } from '../lib/syncEvents';
 
 interface AuthContextType {
   user: User | null;
@@ -10,7 +11,12 @@ interface AuthContextType {
   darkMode: boolean;
   setDarkMode: (dark: boolean) => Promise<void>;
   loginWithGoogle: () => Promise<User>;
+  loginAsGuest: () => void;
   logout: () => Promise<void>;
+  isSyncing: boolean;
+  syncError: boolean;
+  setSyncing: (syncing: boolean) => void;
+  setSyncError: (error: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -19,19 +25,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [googleToken, setGoogleToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [darkMode, setDarkModeState] = useState<boolean>(() => {
-    const cached = localStorage.getItem('dg_dark_mode');
-    return cached === 'true';
-  });
+  const [darkMode, setDarkModeState] = useState<boolean>(false);
+  const [isSyncing, setSyncing] = useState<boolean>(false);
+  const [syncError, setSyncError] = useState<boolean>(false);
 
-  // Keep HTML class in sync with dark mode state
+  // Keep HTML class in sync with dark mode state (always false)
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [darkMode]);
+    document.documentElement.classList.remove('dark');
+  }, []);
+
+  // Listen to global database sync events (e.g. task writes)
+  useEffect(() => {
+    const unsubscribe = syncEvents.subscribe((syncing, error) => {
+      setSyncing(syncing);
+      if (error !== undefined) {
+        setSyncError(error);
+      }
+    });
+    return unsubscribe;
+  }, []);
 
   // Restore googleToken from localStorage on mount (for persistent calendar access)
   useEffect(() => {
@@ -40,44 +52,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setGoogleToken(cachedToken);
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
+    const isGuest = localStorage.getItem('dg_is_guest') === 'true';
+    if (isGuest) {
+      const guestUser: any = {
+        uid: 'demo-user',
+        email: 'guest@deadlineguardian.com',
+        displayName: 'Guest Guardian',
+        photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      };
+      setUser(guestUser);
+      setLoading(false);
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        try {
-          const userSnap = await getDoc(doc(db, 'users', currentUser.uid));
-          if (userSnap.exists()) {
-            const data = userSnap.data();
-            if (data.googleAccessToken) {
-              setGoogleToken(data.googleAccessToken);
-              localStorage.setItem('dg_google_token', data.googleAccessToken);
-            }
-            if (data.settings && data.settings.darkMode !== undefined) {
-              setDarkModeState(data.settings.darkMode);
-              localStorage.setItem('dg_dark_mode', data.settings.darkMode ? 'true' : 'false');
-            }
-          }
-        } catch (e) {
-          console.error("Error restoring Google token from firestore:", e);
+        setUser(currentUser);
+        localStorage.removeItem('dg_is_guest');
+        setLoading(false);
+
+        // Load database settings asynchronously so we do not block waking up the app
+        if (currentUser.uid !== 'demo-user') {
+          getDoc(doc(db, 'users', currentUser.uid))
+            .then((userSnap) => {
+              if (userSnap.exists()) {
+                const data = userSnap.data();
+                if (data.googleAccessToken) {
+                  setGoogleToken(data.googleAccessToken);
+                  localStorage.setItem('dg_google_token', data.googleAccessToken);
+                }
+                if (data.settings && data.settings.darkMode !== undefined) {
+                  setDarkModeState(data.settings.darkMode);
+                  localStorage.setItem('dg_dark_mode', data.settings.darkMode ? 'true' : 'false');
+                }
+              }
+            })
+            .catch((e) => {
+              const msg = e && typeof e === 'object' && 'message' in e ? String(e.message) : '';
+              if (msg.includes('offline') || msg.includes('Failed to get document')) {
+                console.warn("Firestore is currently offline. Utilizing cached local storage credentials.");
+              } else {
+                console.warn("Notice restoring Google token from firestore:", e);
+              }
+            });
         }
       } else {
-        setGoogleToken(null);
-        localStorage.removeItem('dg_google_token');
+        const currentlyGuest = localStorage.getItem('dg_is_guest') === 'true';
+        if (currentlyGuest) {
+          const guestUser: any = {
+            uid: 'demo-user',
+            email: 'guest@deadlineguardian.com',
+            displayName: 'Guest Guardian',
+            photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+          };
+          setUser(guestUser);
+        } else {
+          setUser(null);
+          setGoogleToken(null);
+          localStorage.removeItem('dg_google_token');
+        }
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
 
   const setDarkMode = async (dark: boolean) => {
-    setDarkModeState(dark);
-    localStorage.setItem('dg_dark_mode', dark ? 'true' : 'false');
+    setDarkModeState(false);
+    localStorage.setItem('dg_dark_mode', 'false');
     if (user) {
       try {
         const userRef = doc(db, 'users', user.uid);
         await setDoc(userRef, {
           settings: {
-            darkMode: dark
+            darkMode: false
           }
         }, { merge: true });
       } catch (e) {
@@ -119,7 +167,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           autoReschedule: true,
           alarmSound: 'digital_beep',
           snoozeDefaultMinutes: 10,
-          darkMode: true,
+          darkMode: false,
           notificationsEnabled: true,
           accountabilityPartnerEmail: '',
         },
@@ -147,10 +195,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const loginAsGuest = () => {
+    setLoading(true);
+    const guestUser: any = {
+      uid: 'demo-user',
+      email: 'guest@deadlineguardian.com',
+      displayName: 'Guest Guardian',
+      photoURL: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+    };
+    localStorage.setItem('dg_is_guest', 'true');
+    setUser(guestUser);
+    setGoogleToken('mock-google-token');
+    localStorage.setItem('dg_google_token', 'mock-google-token');
+    setLoading(false);
+  };
+
   const logout = async () => {
     setLoading(true);
     try {
-      await signOut(auth);
+      localStorage.removeItem('dg_is_guest');
+      if (user?.uid !== 'demo-user') {
+        await signOut(auth);
+      }
       setUser(null);
       setGoogleToken(null);
       localStorage.removeItem('dg_google_token');
@@ -162,7 +228,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, googleToken, loading, darkMode, setDarkMode, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      googleToken, 
+      loading, 
+      darkMode, 
+      setDarkMode, 
+      loginWithGoogle, 
+      loginAsGuest, 
+      logout,
+      isSyncing,
+      syncError,
+      setSyncing,
+      setSyncError
+    }}>
       {children}
     </AuthContext.Provider>
   );

@@ -89,7 +89,7 @@ export const Badges: React.FC<BadgesProps> = ({
           </div>
           <div className="text-left">
             <h2 className="font-serif font-extrabold text-lg">Guardian Milestones</h2>
-            <p className="font-dm text-xs text-[#292524]/60">Earn achievements by beating procrastination locks</p>
+            <p className="font-dm text-xs text-[#292524]/85 font-semibold">Earn achievements by beating procrastination locks</p>
           </div>
         </div>
 
@@ -123,7 +123,7 @@ export const Badges: React.FC<BadgesProps> = ({
               className={`relative border-2 rounded-xl p-4 flex flex-col justify-between transition-all duration-300 ${
                 isUnlocked 
                   ? 'border-[#292524] bg-white shadow-[4px_4px_0px_#292524] hover:scale-[1.03] hover:shadow-[6px_6px_0px_#292524]' 
-                  : 'border-[#292524]/20 bg-[#FAF8F5]/50 opacity-70'
+                  : 'border-[#292524]/40 bg-[#FAF8F5]/50 opacity-95'
               }`}
             >
               {/* Unlocked / Locked Icon Indicator */}
@@ -133,7 +133,7 @@ export const Badges: React.FC<BadgesProps> = ({
                     <Check className="h-3 w-3 stroke-[3]" />
                   </span>
                 ) : (
-                  <span className="h-5 w-5 rounded-full bg-stone-100 border border-stone-300 flex items-center justify-center text-stone-400">
+                  <span className="h-5 w-5 rounded-full bg-stone-100 border border-stone-400 flex items-center justify-center text-stone-600 font-bold">
                     <Lock className="h-3 w-3" />
                   </span>
                 )}
@@ -144,16 +144,16 @@ export const Badges: React.FC<BadgesProps> = ({
                 <div className={`h-11 w-11 rounded-full border-2 border-[#292524] flex items-center justify-center shrink-0 shadow-[2px_2px_0px_#292524] ${
                   isUnlocked 
                     ? 'bg-[#5B6B43]' 
-                    : 'bg-stone-100'
+                    : 'bg-stone-200'
                 }`}>
                   {getBadgeIcon(badge.icon, isUnlocked)}
                 </div>
 
                 <div className="text-left">
-                  <h4 className={`font-serif text-sm font-black ${isUnlocked ? 'text-[#292524]' : 'text-stone-500'}`}>
+                  <h4 className={`font-serif text-sm font-black ${isUnlocked ? 'text-[#292524]' : 'text-stone-800'}`}>
                     {badge.name}
                   </h4>
-                  <p className="font-dm text-[11px] text-stone-500 leading-tight mt-0.5 max-w-[180px]">
+                  <p className="font-dm text-[11px] text-stone-700 font-semibold leading-tight mt-0.5 max-w-[180px]">
                     {badge.description}
                   </p>
                 </div>
@@ -162,7 +162,7 @@ export const Badges: React.FC<BadgesProps> = ({
               {/* Progress Bar for progress-tracked badges */}
               {hasProgress && (
                 <div className="mt-4 space-y-1 text-left">
-                  <div className="flex items-center justify-between text-[10px] font-mono font-bold text-stone-500">
+                  <div className="flex items-center justify-between text-[10px] font-mono font-black text-stone-700">
                     <span>PROGRESS</span>
                     <span>{currentProgress}/{badge.maxProgress}</span>
                   </div>

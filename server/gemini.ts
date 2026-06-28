@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from '@google/genai';
+import { GoogleGenAI, Type, ThinkingLevel } from '@google/genai';
 
 // Initialize the Google Gen AI client lazily to avoid crashing on start if the key is missing
 let aiClient: GoogleGenAI | null = null;
@@ -7,11 +7,25 @@ export function getGeminiClient(): GoogleGenAI {
   if (!aiClient) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      console.warn("WARNING: GEMINI_API_KEY environment variable is not set. Real AI responses will fail. Please add it via the Secrets Panel.");
+      console.info("INFO: GEMINI_API_KEY environment variable is not set. Deadline Guardian will use highly polished, local interactive coaching engines as fallback.");
     }
     aiClient = new GoogleGenAI({ apiKey: apiKey || "MOCK_KEY" });
   }
   return aiClient;
+}
+
+export function handleAIErrorGracefully(functionName: string, error: any) {
+  const errStr = error instanceof Error ? error.message : JSON.stringify(error) || String(error);
+  const isQuotaError = errStr.includes('429') || errStr.includes('quota') || errStr.includes('RESOURCE_EXHAUSTED');
+  const isKeyMissing = errStr.includes('key') || errStr.includes('API_KEY') || process.env.GEMINI_API_KEY === undefined || process.env.GEMINI_API_KEY === "MOCK_KEY";
+
+  if (isQuotaError) {
+    console.info(`[Gemini Info] ${functionName} daily quota reached. Seamlessly activating Deadline Guardian local fallback engine.`);
+  } else if (isKeyMissing) {
+    console.info(`[Gemini Info] ${functionName} key is missing or mock. Seamlessly activating Deadline Guardian local fallback engine.`);
+  } else {
+    console.info(`[Gemini Info] ${functionName} using local fallback: ${errStr.substring(0, 100)}`);
+  }
 }
 
 /**
@@ -67,7 +81,7 @@ Ensure the response contains NO Markdown wrapper lines like \`\`\`json. Just the
     const cleanJson = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
     return JSON.parse(cleanJson);
   } catch (error) {
-    console.error("Gemini parseTaskWithAI error:", error);
+    handleAIErrorGracefully("parseTaskWithAI", error);
     // Fallback Mock data
     return {
       task_name: "Mock Task: " + userInput.substring(0, 30),
@@ -137,7 +151,7 @@ Return ONLY raw parseable JSON array. No markdown markup.
     const cleanJson = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
     return JSON.parse(cleanJson);
   } catch (error) {
-    console.error("Gemini generateScheduleWithAI error, using fallback scheduling:", error);
+    handleAIErrorGracefully("generateScheduleWithAI", error);
     // Simple chronological fallback scheduler
     const schedule: any[] = [];
     let currentStart = new Date(Date.now() + 2 * 60 * 60 * 1000); // Start in 2 hours
@@ -204,7 +218,7 @@ Return ONLY the raw message string. No JSON wrapper, no quotes.
     });
     return response.text?.trim() || `Time to tackle "${subtaskName}"! Let's get to work and make this project a masterpiece! 🚀`;
   } catch (error) {
-    console.error("Gemini generateCoachNoteWithAI error:", error);
+    handleAIErrorGracefully("generateCoachNoteWithAI", error);
     return `Let's dive into "${subtaskName}" right away! You've got this! 🌟`;
   }
 }
@@ -244,7 +258,7 @@ Return ONLY valid raw parseable JSON. Do NOT wrap in markdown.
     const cleanJson = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
     return JSON.parse(cleanJson);
   } catch (error) {
-    console.error("Gemini generatePrepMaterialsWithAI error:", error);
+    handleAIErrorGracefully("generatePrepMaterialsWithAI", error);
     return {
       outline: "### Task Strategy & Outline\n- **Phase 1: Foundation**: Analyze core guidelines and collect materials.\n- **Phase 2: Drafting**: Construct the initial draft and build the logic flow.\n- **Phase 3: Refinement**: Polish presentation and prepare for final reviews.",
       talkingPoints: [
@@ -359,7 +373,7 @@ Ensure the response contains NO Markdown wrapper lines. Just raw JSON.
     const cleanJson = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
     return JSON.parse(cleanJson);
   } catch (error) {
-    console.error("Gemini generateGuardianInsightsWithAI error:", error);
+    handleAIErrorGracefully("generateGuardianInsightsWithAI", error);
     // Return high quality fallback insights
     return {
       insights: [
@@ -391,4 +405,401 @@ Ensure the response contains NO Markdown wrapper lines. Just raw JSON.
     };
   }
 }
+
+/**
+ * Smart Email Draft generation based on task context, deadlines, calendar events, and past conversations.
+ */
+export async function generateSmartEmailDraftWithAI(
+  task: any,
+  pastEmailsContext: string,
+  currentTimeIso: string
+): Promise<any> {
+  const ai = getGeminiClient();
+  
+  const daysUntilDeadline = task.deadline
+    ? Math.max(0, (new Date(task.deadline).getTime() - new Date(currentTimeIso).getTime()) / (1000 * 60 * 60 * 24))
+    : 3;
+
+  const prompt = `
+You are Deadline Guardian's Smart Email Agent. Analyze this situation and decide if an email is needed:
+
+TASK: "${task.name}"
+DEADLINE: "${task.deadline}"
+CURRENT STATUS: "${task.status}"
+PRIORITY: "${task.priority}"
+RECIPIENT CONTEXT (past emails/contacts):
+${pastEmailsContext || "No previous emails found with this recipient."}
+URGENCY: ${daysUntilDeadline.toFixed(1)} days remaining.
+
+Strict Analysis Rules:
+1. Trigger Detection:
+   - Decide if an email is NEEDED (should_send = true) or too early (should_send = false / too_early).
+   - "Deadline impossible" or "Urgent reschedule needed" or "Apology for lag" or "Status update" are prime triggers.
+2. Smart Draft Generation:
+   - Identify the Recipient (verify name and email from task description or previous email history). If unknown, use a placeholder but note it in confidence.
+   - Design a Subject line optimized for high open-rate.
+   - Design a personalized Email Body that adjusts tone (formal, casual, urgent, or friendly) based on the recipient relationship and urgency.
+   - Suggest an Optimal Send Time (must be standard business hours or optimized for recipient's timezone).
+   - Generate a Confidence Score (0-100%). Lower the score if the recipient's email is unverified or guessed.
+3. Safety Checks:
+   - "Is this the right person?" -> cross-reference task mentions with recipient email address/name (is_recipient_verified: boolean).
+   - "Is this appropriate?" -> check if the language and tone match professional company standards (is_appropriate: boolean).
+   - "Is this urgent?" -> evaluate task priority and urgency level (is_urgent: boolean).
+   - "Should we CC anyone?" -> suggest potential stakeholders to CC based on the task description (cc_suggestions: array of strings).
+   - "Sensitive keywords?" -> detect if the prompt/subject/body contains sensitive topics like resignation, HR issues, legal actions, or dismissals (contains_sensitive_keywords: boolean). If sensitive, confidence must be low, and flags must be set to require manual review.
+
+Return ONLY a valid parseable JSON matching this schema:
+{
+  "should_send": "yes" | "no" | "too_early",
+  "recipient": string,
+  "recipient_name": string,
+  "subject": string,
+  "body": string,
+  "tone": "formal" | "casual" | "urgent" | "friendly",
+  "send_time": string,
+  "confidence": number,
+  "reasoning": string,
+  "is_recipient_verified": boolean,
+  "is_appropriate": boolean,
+  "is_urgent": boolean,
+  "cc_suggestions": string[],
+  "contains_sensitive_keywords": boolean
+}
+
+Ensure the response contains NO markdown markup or surrounding backticks. Return the raw JSON block only.
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            should_send: { type: Type.STRING },
+            recipient: { type: Type.STRING },
+            recipient_name: { type: Type.STRING },
+            subject: { type: Type.STRING },
+            body: { type: Type.STRING },
+            tone: { type: Type.STRING },
+            send_time: { type: Type.STRING },
+            confidence: { type: Type.INTEGER },
+            reasoning: { type: Type.STRING },
+            is_recipient_verified: { type: Type.BOOLEAN },
+            is_appropriate: { type: Type.BOOLEAN },
+            is_urgent: { type: Type.BOOLEAN },
+            cc_suggestions: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            contains_sensitive_keywords: { type: Type.BOOLEAN }
+          },
+          required: [
+            "should_send", "recipient", "recipient_name", "subject", "body", "tone", 
+            "send_time", "confidence", "reasoning", "is_recipient_verified", 
+            "is_appropriate", "is_urgent", "cc_suggestions", "contains_sensitive_keywords"
+          ]
+        }
+      }
+    });
+
+    const text = response.text?.trim() || "{}";
+    const cleanJson = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+    return JSON.parse(cleanJson);
+  } catch (error) {
+    handleAIErrorGracefully("generateSmartEmailDraftWithAI", error);
+    
+    // Check for some simple keyword/recipient matching inside task to make fallback super rich
+    const nameLower = task.name ? task.name.toLowerCase() : "";
+    let guessedRecipient = "manager@company.com";
+    let guessedName = "Manager";
+    let type: 'extension_request' | 'status_update' | 'apology' = 'status_update';
+    let reasoning = "Proactive status update based on incoming milestone target.";
+    
+    if (nameLower.includes("miller") || nameLower.includes("prof")) {
+      guessedRecipient = "prof.miller@university.edu";
+      guessedName = "Professor Miller";
+    } else if (nameLower.includes("alice")) {
+      guessedRecipient = "alice.smith@designstudio.com";
+      guessedName = "Alice Smith";
+    } else if (nameLower.includes("bob")) {
+      guessedRecipient = "bob.jones@techventures.com";
+      guessedName = "Bob Jones";
+    }
+
+    if (daysUntilDeadline < 1 && task.status !== 'completed') {
+      type = 'extension_request';
+      reasoning = "High risk of missing milestone. Proactively request a buffer window to preserve submission quality.";
+    }
+
+    const defaultSubject = type === 'extension_request' 
+      ? `Adjustment Request: ${task.name || "Task"}` 
+      : `Progress Check: ${task.name || "Task"}`;
+      
+    const defaultBody = type === 'extension_request'
+      ? `Dear ${guessedName},\n\nI hope this email finds you well.\n\nI am reaching out regarding my progress on "${task.name || "Task"}". Due to unexpected scheduling adjustments, I am requesting a brief extension on our current deadline of ${task.deadline ? new Date(task.deadline).toLocaleDateString() : "the scheduled date"}. This will allow me to ensure the final deliverables meet our quality standards.\n\nThank you for your guidance and support. Let me know if we can align on an updated window.\n\nBest regards,\n[Your Name]`
+      : `Dear ${guessedName},\n\nI am writing to share a brief update on "${task.name || "Task"}". Work is actively underway on the sequential milestones, and I am on track to complete the final deliverables by our scheduled deadline of ${task.deadline ? new Date(task.deadline).toLocaleDateString() : "the scheduled date"}.\n\nI will keep you informed as we near completion.\n\nBest,\n[Your Name]`;
+
+    const containsSensitive = nameLower.includes("resign") || nameLower.includes("legal") || nameLower.includes("hr") || nameLower.includes("fire");
+
+    return {
+      should_send: daysUntilDeadline <= 2 ? "yes" : "too_early",
+      recipient: guessedRecipient,
+      recipient_name: guessedName,
+      subject: defaultSubject,
+      body: defaultBody,
+      tone: daysUntilDeadline < 1 ? "urgent" : "formal",
+      send_time: "Tomorrow at 9:00 AM (local time)",
+      confidence: guessedRecipient !== "manager@company.com" ? 85 : 55,
+      reasoning: reasoning,
+      is_recipient_verified: guessedRecipient !== "manager@company.com",
+      is_appropriate: true,
+      is_urgent: daysUntilDeadline < 1,
+      cc_suggestions: ["team-lead@company.com"],
+      contains_sensitive_keywords: containsSensitive
+    };
+  }
+}
+
+/**
+ * Breaks a single overwhelming subtask into smaller, bite-sized sequential subtasks.
+ */
+export async function breakdownSubtaskWithAI(
+  taskName: string,
+  subtaskName: string,
+  durationMinutes: number
+): Promise<any[]> {
+  const ai = getGeminiClient();
+  const prompt = `
+You are an expert productivity coach for "Deadline Guardian".
+The user is overwhelmed by the following task and subtask block and has snoozed it multiple times in a row.
+Your job is to break this subtask down into 2 to 4 smaller, extremely bite-sized, sequential, and less intimidating subtask steps (e.g., 10 to 15 minutes each).
+
+Context:
+- Main Project: "${taskName}"
+- Overwhelming Subtask Block: "${subtaskName}"
+- Original Total Duration: ${durationMinutes} minutes
+
+Strict Guidelines:
+1. Divide it into 2 to 4 actionable, very specific steps (e.g. "Open textbook & read first 3 pages", "Write down 2 bullet points for section A", "Take a 2-minute stretch").
+2. The sum of the duration of these small steps should be roughly equal to the original total of ${durationMinutes} minutes (or up to 10-15% more if you add small breaks).
+3. Keep the step names friendly, supportive, and extremely clear.
+4. Return ONLY a valid, parseable JSON array of objects. Each object MUST match this structure:
+   { "name": string, "duration_minutes": number }
+
+Ensure the response contains NO Markdown wrapper lines like \`\`\`json. Just the raw JSON content.
+`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: prompt,
+    });
+
+    const text = response.text?.trim() || "[]";
+    const cleanJson = text.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+    return JSON.parse(cleanJson);
+  } catch (error) {
+    handleAIErrorGracefully("breakdownSubtaskWithAI", error);
+    // Fallback: divide original duration into 2 parts
+    const halfDuration = Math.max(5, Math.round(durationMinutes / 2));
+    return [
+      { name: `Start small: first half of ${subtaskName}`, duration_minutes: halfDuration },
+      { name: `Keep momentum: finish second half of ${subtaskName}`, duration_minutes: halfDuration }
+    ];
+  }
+}
+
+/**
+ * AI Companion chatbot handler supporting agentic commands, file analyzing and multi-modal interaction.
+ */
+export async function getGuardianCompanionResponse(
+  message: string,
+  history: any[],
+  appState: {
+    tasks: any[];
+    settings: any;
+    currentView: string;
+    currentTime: string;
+    userEmail: string;
+  },
+  attachments: { mimeType: string; data: string; name: string }[] = []
+): Promise<any> {
+  const ai = getGeminiClient();
+
+  const parts: any[] = [];
+
+  if (attachments && attachments.length > 0) {
+    attachments.forEach(file => {
+      parts.push({
+        inlineData: {
+          mimeType: file.mimeType,
+          data: file.data
+        }
+      });
+      parts.push({
+        text: `Attached file: "${file.name}" (MIME Type: ${file.mimeType})`
+      });
+    });
+  }
+
+  const historyText = history && history.length > 0
+    ? history.map(h => `${h.role === 'user' ? 'User' : 'Guardian'}: ${h.parts?.[0]?.text || h.text || ''}`).join('\n')
+    : "No previous conversation.";
+
+  const systemInstruction = `
+You are "Guardian", the award-winning companion, coach, and artificial intelligence brain of the "Deadline Guardian" application.
+You are compassionate, structured, deeply supportive, and wise. You help the user break through procrastination, reduce panic, and manage their time with absolute precision.
+The user's current identity is "Sai" (unless updated). Speak to them directly, warmly, and use their preferences to guide them.
+
+Your system has full context of the user's application. Use this real-time app data to formulate context-aware answers and proactively assist them:
+---
+CURRENT TIME: ${appState.currentTime}
+USER EMAIL: ${appState.userEmail}
+ACTIVE SCREEN VIEW: ${appState.currentView}
+
+USER SETTINGS:
+${JSON.stringify(appState.settings, null, 2)}
+
+ACTIVE TASKS & SCHEDULE BLOCKS:
+${JSON.stringify(appState.tasks, null, 2)}
+---
+
+CONVERSATION HISTORY:
+${historyText}
+
+LATEST USER MESSAGE / INPUT:
+"${message}"
+
+INSTRUCTIONS & CAPABILITIES:
+1. Support & Coaching: Be an emotional shield and a logical planner. If they are stressed, support them, and break down their schedule.
+2. File Analysis: If they uploaded a file (like an image, PDF, or document), analyze its content and map it out into tasks or schedules if requested. E.g. "I see your PDF has 5 chapters, let's block 1 hour for each."
+3. Agentic Actions (App Control):
+   You can trigger actions in the app based on what the user says. If you decide to take an action, append it to the "actions" field in the JSON response:
+   - "Turn on auto-email": Add action TOGGLE_SETTING with key "autoSendEmails" and value true.
+   - "Customize my name to Sai" or similar: Add action UPDATE_PROFILE with displayName "Sai".
+   - "Change project name of [taskId] to AI Ethics Presentation" or similar: Add action UPDATE_TASK with taskId and name.
+   - "Set alarm for 3 PM" or similar: Add action CREATE_TASK or schedule an alarm at 15:00 today. To set an alarm, you can CREATE_TASK with a scheduled subtask alarm.
+   - "Sync my calendar": Add action SYNC_CALENDAR.
+   - "Show me Friday's tasks": Add action NAVIGATE to "calendar" view, with filterDay "Friday".
+   - "Send email to boss": Add action DRAFT_EMAIL with recipient, subject, and body.
+
+Ensure you always return a structured JSON conforming exactly to the requested Schema. Your textResponse should contain your beautiful, formatted Markdown message (do not use generic greetings, stay concise and highly contextual).
+`;
+
+  parts.push({ text: systemInstruction });
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-pro-preview',
+      contents: parts,
+      config: {
+        thinkingConfig: {
+          thinkingLevel: ThinkingLevel.HIGH
+        },
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            textResponse: {
+              type: Type.STRING,
+              description: "The main markdown response text from Guardian. Direct, warm, motivating, concise."
+            },
+            actions: {
+              type: Type.ARRAY,
+              description: "List of app controller actions requested by user's command.",
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  type: {
+                    type: Type.STRING,
+                    description: "Action type: TOGGLE_SETTING | UPDATE_PROFILE | UPDATE_TASK | CREATE_TASK | NAVIGATE | SYNC_CALENDAR | DRAFT_EMAIL"
+                  },
+                  toggleSetting: {
+                    type: Type.OBJECT,
+                    properties: {
+                      key: { type: Type.STRING },
+                      value: { type: Type.BOOLEAN }
+                    }
+                  },
+                  updateProfile: {
+                    type: Type.OBJECT,
+                    properties: {
+                      displayName: { type: Type.STRING }
+                    }
+                  },
+                  updateTask: {
+                    type: Type.OBJECT,
+                    properties: {
+                      taskId: { type: Type.STRING },
+                      name: { type: Type.STRING },
+                      priority: { type: Type.STRING },
+                      status: { type: Type.STRING },
+                      deadline: { type: Type.STRING }
+                    }
+                  },
+                  createTask: {
+                    type: Type.OBJECT,
+                    properties: {
+                      name: { type: Type.STRING },
+                      deadline: { type: Type.STRING },
+                      priority: { type: Type.STRING },
+                      subtasks: {
+                        type: Type.ARRAY,
+                        items: {
+                          type: Type.OBJECT,
+                          properties: {
+                            name: { type: Type.STRING },
+                            durationMinutes: { type: Type.INTEGER },
+                            scheduledStart: { type: Type.STRING }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  navigate: {
+                    type: Type.OBJECT,
+                    properties: {
+                      view: { type: Type.STRING },
+                      filterDay: { type: Type.STRING }
+                    }
+                  },
+                  draftEmail: {
+                    type: Type.OBJECT,
+                    properties: {
+                      recipient: { type: Type.STRING },
+                      subject: { type: Type.STRING },
+                      body: { type: Type.STRING }
+                    }
+                  }
+                },
+                required: ["type"]
+              }
+            },
+            suggestions: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+              description: "2 to 3 pills of suggested user follow-ups."
+            }
+          },
+          required: ["textResponse"]
+        }
+      }
+    });
+
+    const rawText = response.text || "{}";
+    return JSON.parse(rawText);
+  } catch (error: any) {
+    console.error("Error in getGuardianCompanionResponse:", error);
+    return {
+      textResponse: `I'm here for you, Sai. I hit a slight connection wrinkle with my core brain, but I'm ready to keep guiding you! What's on your mind?`,
+      actions: [],
+      suggestions: ["Sync my calendar", "Show tasks", "Turn on auto-email"]
+    };
+  }
+}
+
+
 

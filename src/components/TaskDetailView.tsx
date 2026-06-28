@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Task, Subtask } from '../types';
 import { saveTaskToDb, deleteTaskFromDb } from '../lib/tasks';
 import { playSuccessChime } from '../lib/audio';
+import { generateGoogleCalendarLink, generateIcsFile } from '../lib/calendarSync';
 import confetti from 'canvas-confetti';
 import { 
   ArrowLeft, Trash2, Calendar, CheckCircle2, Circle, 
@@ -210,9 +211,33 @@ export const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, onBack, on
             {task.description || "No customized description provided. This project has been automatically scheduled based on deadline requirements."}
           </p>
 
-          <div className="flex items-center gap-2 font-mono text-[11px] text-[#292524]/60">
-            <Calendar className="h-4 w-4 text-[#5B6B43]" />
-            <span>Absolute Deadline: <strong className="text-[#292524]">{formattedDeadline}</strong></span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
+            <div className="flex items-center gap-2 font-mono text-[11px] text-[#292524]/60">
+              <Calendar className="h-4 w-4 text-[#5B6B43]" />
+              <span>Absolute Deadline: <strong className="text-[#292524]">{formattedDeadline}</strong></span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-mono text-[9px] uppercase text-[#292524]/40 font-extrabold mr-1">Calendar Sync:</span>
+              <a
+                href={generateGoogleCalendarLink(task)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-white hover:bg-[#FAF8F5] text-indigo-600 border border-[#292524]/20 text-[10px] font-dm font-black uppercase px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-[1px_1px_0px_#292524] transition-all cursor-pointer"
+                title="Add to Google Calendar"
+              >
+                <Calendar className="h-3 w-3" />
+                Google Calendar
+              </a>
+              <button
+                onClick={() => generateIcsFile(task)}
+                className="bg-white hover:bg-[#FAF8F5] text-emerald-600 border border-[#292524]/20 text-[10px] font-dm font-black uppercase px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-[1px_1px_0px_#292524] transition-all cursor-pointer"
+                title="Download standard .ics file"
+              >
+                <Calendar className="h-3 w-3" />
+                Download (.ICS)
+              </button>
+            </div>
           </div>
         </div>
 

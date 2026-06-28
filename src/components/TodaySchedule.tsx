@@ -82,7 +82,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({ tasks }) => {
 
       <div className="space-y-4">
         {sortedSubtasks.length === 0 ? (
-          <div className="py-8 text-center text-slate-400 text-xs">
+          <div className="py-8 text-center text-slate-600 font-semibold text-xs">
             No subtasks scheduled yet. Use voice or manual input to plan a project.
           </div>
         ) : (
@@ -105,19 +105,19 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({ tasks }) => {
 
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-[10px] text-indigo-500 dark:text-indigo-400 font-bold">
+                      <span className="font-mono text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">
                         {dateLabel} @ {startTime}
                       </span>
-                      <span className={`font-sans text-[9px] font-semibold border px-1.5 py-0.5 rounded-full uppercase tracking-wider ${getCategoryColor(item.category)}`}>
+                      <span className={`font-sans text-[9px] font-bold border px-1.5 py-0.5 rounded-full uppercase tracking-wider ${getCategoryColor(item.category)}`}>
                         {item.category || 'work'}
                       </span>
                     </div>
 
-                    <h4 className={`font-sans text-xs font-bold leading-tight ${isDone ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                    <h4 className={`font-sans text-xs font-extrabold leading-tight ${isDone ? 'line-through text-slate-500' : 'text-slate-900 dark:text-slate-100'}`}>
                       {item.subtask.name}
                     </h4>
 
-                    <span className="font-sans text-[11px] text-slate-400 block -mt-0.5 max-w-[220px] truncate">
+                    <span className="font-sans text-[11px] text-slate-600 font-semibold block -mt-0.5 max-w-[220px] truncate">
                       Project: {item.taskName}
                     </span>
                   </div>
@@ -134,7 +134,7 @@ export const TodaySchedule: React.FC<TodayScheduleProps> = ({ tasks }) => {
           <TrendingUp className="h-4 w-4 text-[#5B6B43] dark:text-emerald-400" />
           <h3 className="font-sans font-extrabold text-xs text-slate-800 dark:text-slate-100 uppercase tracking-wider">Weekly Productivity</h3>
         </div>
-        <p className="font-sans text-[11px] text-slate-400">
+        <p className="font-sans text-[11px] text-slate-600 font-semibold">
           Your task completion volume over the last 7 days. Keep the momentum going!
         </p>
 

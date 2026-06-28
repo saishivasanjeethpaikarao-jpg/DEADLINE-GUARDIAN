@@ -14,6 +14,9 @@ import {
   generateCoachNoteWithAI,
   generatePrepMaterialsWithAI,
   generateGuardianInsightsWithAI,
+  generateSmartEmailDraftWithAI,
+  breakdownSubtaskWithAI,
+  getGuardianCompanionResponse,
 } from "./server/gemini";
 
 const app = express();
@@ -113,6 +116,191 @@ app.post("/api/gemini/insights", async (req, res) => {
   } catch (error: any) {
     console.error("API Error - gemini insights:", error);
     res.status(500).json({ error: "Failed to generate insights", details: error.message });
+  }
+});
+
+// API: Break down an overwhelming subtask into smaller bite-sized steps
+app.post("/api/gemini/breakdown-subtask", async (req, res) => {
+  try {
+    const { taskName, subtaskName, durationMinutes } = req.body;
+    if (!taskName || !subtaskName || !durationMinutes) {
+      return res.status(400).json({ error: "Missing required breakdown parameters" });
+    }
+    const breakdown = await breakdownSubtaskWithAI(
+      taskName,
+      subtaskName,
+      Number(durationMinutes)
+    );
+    res.json({ success: true, data: breakdown });
+  } catch (error: any) {
+    console.error("API Error - gemini breakdown-subtask:", error);
+    res.status(500).json({ error: "Failed to break down subtask", details: error.message });
+  }
+});
+
+// API: Guardian chatbot companion for chat, mic voice input/output, file analysis and agentic controls
+app.post("/api/gemini/guardian-companion", async (req, res) => {
+  try {
+    const { message, history, appState, attachments } = req.body;
+    if (!message || !appState) {
+      return res.status(400).json({ error: "Missing required companion parameters" });
+    }
+    const companionResponse = await getGuardianCompanionResponse(
+      message,
+      history || [],
+      appState,
+      attachments || []
+    );
+    res.json({ success: true, data: companionResponse });
+  } catch (error: any) {
+    console.error("API Error - gemini companion:", error);
+    res.status(500).json({ error: "Failed companion interaction", details: error.message });
+  }
+});
+
+// ==================== SMART EMAIL AGENT ENDPOINTS ====================
+
+// Utility to build a MIME email message
+function buildMimeMessage(to: string, subject: string, body: string, cc?: string) {
+  const parts = [
+    `To: ${to}`,
+    cc ? `Cc: ${cc}` : null,
+    `Subject: =?utf-8?B?${Buffer.from(subject).toString("base64")}?=`,
+    `Content-Type: text/html; charset=utf-8`,
+    `MIME-Version: 1.0`,
+    "",
+    body.replace(/\n/g, "<br/>"),
+  ].filter(Boolean);
+
+  const message = parts.join("\r\n");
+  const encodedMessage = Buffer.from(message)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+  return encodedMessage;
+}
+
+// API: Generate structured email drafts with Gemini
+app.post("/api/gemini/draft-email", async (req, res) => {
+  try {
+    const { task, pastEmailsContext, currentTime } = req.body;
+    if (!task) {
+      return res.status(400).json({ error: "Missing task details" });
+    }
+    const draft = await generateSmartEmailDraftWithAI(
+      task,
+      pastEmailsContext || "",
+      currentTime || new Date().toISOString()
+    );
+    res.json({ success: true, data: draft });
+  } catch (error: any) {
+    console.error("API Error - gemini draft-email:", error);
+    res.status(500).json({ error: "Failed to generate email draft", details: error.message });
+  }
+});
+
+// API: Fetch recent emails for relationship history and contact lookup
+app.get("/api/gmail/recent-emails", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader ? authHeader.replace("Bearer ", "") : (req.query.token as string);
+
+    if (!token || token === "mock-google-token") {
+      // High-quality mock emails for guest / unauthorized users
+      return res.json({
+        success: true,
+        emails: [
+          { from: "Professor Miller <prof.miller@university.edu>", subject: "RE: Research Project Milestone", snippet: "I received your draft of the proposal. It looks solid but make sure to add the metrics as discussed.", date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() },
+          { from: "Alice Smith <alice.smith@designstudio.com>", subject: "Design Review Assets", snippet: "Here are the shared style guide templates and logo assets for your review. Let me know when ready.", date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() },
+          { from: "Bob Jones <bob.jones@techventures.com>", subject: "Follow-up on Client Pitch", snippet: "Great work on the slides yesterday. Please send me the updated financial summary once compiled.", date: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() }
+        ]
+      });
+    }
+
+    const oauth2Client = getGoogleAuth(token);
+    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+    const response = await gmail.users.messages.list({
+      userId: "me",
+      maxResults: 15,
+    });
+
+    const messages = response.data.messages || [];
+    const emailsList: any[] = [];
+
+    for (const msg of messages) {
+      if (msg.id) {
+        try {
+          const detailedMsg = await gmail.users.messages.get({
+            userId: "me",
+            id: msg.id,
+          });
+
+          const headers = detailedMsg.data.payload?.headers || [];
+          const from = headers.find((h) => h.name?.toLowerCase() === "from")?.value || "";
+          const to = headers.find((h) => h.name?.toLowerCase() === "to")?.value || "";
+          const subject = headers.find((h) => h.name?.toLowerCase() === "subject")?.value || "";
+          const date = headers.find((h) => h.name?.toLowerCase() === "date")?.value || "";
+          const snippet = detailedMsg.data.snippet || "";
+
+          emailsList.push({
+            id: msg.id,
+            from,
+            to,
+            subject,
+            snippet,
+            date,
+          });
+        } catch (e) {
+          console.warn(`Could not fetch message details for ${msg.id}:`, e);
+        }
+      }
+    }
+
+    res.json({ success: true, emails: emailsList });
+  } catch (error: any) {
+    console.error("Google Gmail List Messages Error:", error);
+    res.status(500).json({ error: "Failed to fetch recent emails", details: error.message });
+  }
+});
+
+// API: Send email via Gmail
+app.post("/api/gmail/send-email", async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader ? authHeader.replace("Bearer ", "") : req.body.token;
+
+    if (!token) {
+      return res.status(401).json({ error: "Unauthorized: Missing Google OAuth Access Token" });
+    }
+
+    const { to, subject, body, cc } = req.body;
+    if (!to || !subject || !body) {
+      return res.status(400).json({ error: "Missing to, subject, or body" });
+    }
+
+    if (token === "mock-google-token") {
+      // Guest/Simulated user success
+      return res.json({ success: true, message: "Demo email sent successfully (Simulated)" });
+    }
+
+    const oauth2Client = getGoogleAuth(token);
+    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+    const encodedMessage = buildMimeMessage(to, subject, body, cc);
+
+    const result = await gmail.users.messages.send({
+      userId: "me",
+      requestBody: {
+        raw: encodedMessage,
+      },
+    });
+
+    res.json({ success: true, message: "Email sent successfully", data: result.data });
+  } catch (error: any) {
+    console.error("Google Gmail Send Error:", error);
+    res.status(500).json({ error: "Failed to send email", details: error.message });
   }
 });
 

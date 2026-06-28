@@ -14,6 +14,7 @@ export interface Subtask {
   alarmNote?: string;
   calendarEventId?: string;
   completedAt?: string; // ISO string
+  snoozeCount?: number;
 }
 
 export interface PrepMaterial {
@@ -119,4 +120,30 @@ export interface AchievementBadge {
   unlockedAt?: string; // ISO string if unlocked, undefined if locked
   progress?: number; // e.g. 1/3 days focus streak
   maxProgress?: number;
+}
+
+// ==================== SMART EMAIL AGENT TYPES ====================
+export interface SmartEmail {
+  id: string;
+  userId: string;
+  taskId?: string;
+  taskName?: string;
+  shouldSend: boolean;
+  recipient: string;
+  recipientName: string;
+  subject: string;
+  body: string;
+  tone: 'formal' | 'casual' | 'urgent' | 'friendly';
+  sendTime?: string;
+  confidence: number;
+  reasoning: string;
+  status: 'draft' | 'approved' | 'rejected' | 'snoozed' | 'sent';
+  cc?: string;
+  createdAt: string;
+  sentAt?: string;
+  isRecipientVerified: boolean;
+  isAppropriate: boolean;
+  isUrgent: boolean;
+  ccSuggestions: string[];
+  containsSensitiveKeywords: boolean;
 }

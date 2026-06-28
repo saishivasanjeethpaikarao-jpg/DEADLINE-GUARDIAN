@@ -28,7 +28,7 @@ import {
 } from 'recharts';
 import { 
   Mic, Sparkles, Plus, Clock, CheckCircle2, Circle, 
-  AlertTriangle, ShieldAlert, Sparkle, List, Calendar, Settings, Bell, Flame, Brain
+  AlertTriangle, ShieldAlert, Sparkle, List, Calendar, Settings, Bell, Flame, Brain, Bot
 } from 'lucide-react';
 import { playSuccessChime, playAlarmTriggerChime } from './lib/audio';
 import { motion, AnimatePresence } from 'motion/react';
@@ -138,7 +138,7 @@ const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loadingTasks, setLoadingTasks] = useState(false);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'focus' | 'email-agent'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'focus' | 'email-agent' | 'companion'>('dashboard');
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [unlockedBadges, setUnlockedBadges] = useState<string[]>([]);
   const [focusSubtaskInfo, setFocusSubtaskInfo] = useState<{ taskId: string; subtaskId: string } | null>(null);
@@ -1009,6 +1009,25 @@ const AppContent: React.FC = () => {
                       })}
                     </div>
                   )}
+                </motion.div>
+              );
+
+            case 'companion':
+              return (
+                <motion.div
+                  key="companion-loading-placeholder"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex flex-col items-center justify-center min-h-[60vh] text-center p-8 space-y-4"
+                >
+                  <div className="h-16 w-16 rounded-full bg-[#5B6B43]/10 flex items-center justify-center text-[#5B6B43] animate-pulse border-2 border-[#5B6B43]/20">
+                    <Bot className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="font-serif font-black text-xl text-[#292524] tracking-tight">Establishing Coach Link...</h3>
+                    <p className="font-mono text-[9px] text-[#5B6B43] uppercase tracking-widest mt-1">Connecting to Autonomous Neural Brain Core</p>
+                  </div>
                 </motion.div>
               );
 

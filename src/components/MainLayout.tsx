@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Menu, X, Flame, Sparkles, Home, Calendar, List, Settings, LogOut, Mail, Cloud, RefreshCw, AlertCircle } from 'lucide-react';
+import { Menu, X, Flame, Sparkles, Home, Calendar, List, Settings, LogOut, Mail, Cloud, RefreshCw, AlertCircle, Bot } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Task } from '../types';
 import { TheSpine } from './TheSpine';
@@ -9,8 +9,8 @@ import { calculateStreak } from '../lib/tasks';
 interface MainLayoutProps {
   children: React.ReactNode;
   tasks: Task[];
-  currentView: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'focus' | 'email-agent';
-  onNavigate: (view: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'email-agent') => void;
+  currentView: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'focus' | 'email-agent' | 'companion';
+  onNavigate: (view: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'email-agent' | 'companion') => void;
 }
 
 export const MainLayout: React.FC<MainLayoutProps> = ({
@@ -37,6 +37,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, description: 'Command Center' },
+    { id: 'companion', label: 'Guardian Chat', icon: Bot, description: 'Autonomous Coach' },
     { id: 'email-agent', label: 'Email Agent', icon: Mail, description: 'Smart Email Copilot' },
     { id: 'calendar', label: 'Calendar', icon: Calendar, description: 'Weekly Blocks' },
     { id: 'voice-input', label: 'AI Agent', icon: Sparkles, description: 'Guardian Voice Coach' },

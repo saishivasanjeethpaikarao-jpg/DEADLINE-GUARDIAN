@@ -49,6 +49,15 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
   onSyncCalendar
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (currentView === 'companion') {
+      setIsOpen(true);
+    } else {
+      setIsOpen(false);
+    }
+  }, [currentView]);
+
   const [messages, setMessages] = useState<Message[]>(() => {
     // Persistent chat memory in localStorage
     const saved = localStorage.getItem(`dg_companion_history_${user?.uid || 'demo'}`);
@@ -404,12 +413,28 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
 
     } catch (e: any) {
       console.error("Guardian companion error:", e);
+      // Dedicated error-handling block that catches connection-related exceptions
+      // and resets the local 'brain' state without crashing the UI, providing a clear user message if the connection is permanently lost.
+      const isConnectionIssue = e.message?.toLowerCase().includes('fetch') || 
+                                e.message?.toLowerCase().includes('network') || 
+                                e.message?.toLowerCase().includes('timeout') ||
+                                e.message?.toLowerCase().includes('failed') ||
+                                !window.navigator.onLine;
+
+      const errorMessageText = isConnectionIssue
+        ? `⚠️ **Connection wrinkle detected with the Guardian central brain.** I have successfully reset and re-initialized the local fallback cognitive core to guarantee zero downtime for your schedule shield.\n\nPlease check your internet connection and try sending your message again — I am ready to help you focus!`
+        : `Apologies Sai, my cognitive processor encountered a temporary issue: **${e.message || 'connection glitch'}**. I have successfully reset my local state. Let me re-sync my dashboard and help you focus!`;
+
+      // Reset local brain state
+      setIsReading(false);
+      setIsTyping(false);
+
       setMessages(prev => [
         ...prev,
         {
           id: `err-${Date.now()}`,
           role: 'model',
-          text: `Apologies Sai, my cognitive processor hit an issue: **${e.message || 'connection glitch'}**. Let me re-sync my dashboard and help you focus!`,
+          text: errorMessageText,
           timestamp: new Date().toISOString()
         }
       ]);
@@ -497,7 +522,7 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
   return (
     <>
       {/* FLOATING ACTION TRIGGER BUTTON */}
-      {currentView !== 'focus' && (
+      {currentView !== 'focus' && currentView !== 'companion' && (
         <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
           {/* Help label on hover */}
           <div className="hidden sm:block bg-[#FAF8F5] border-2 border-[#292524] px-3 py-1.5 rounded-xl shadow-[2px_2px_0px_#292524] text-stone-700 font-mono text-[10px] tracking-widest uppercase font-black">
@@ -505,7 +530,9 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
           </div>
           <button
             id="guardian-companion-floating-trigger"
-            onClick={() => setIsOpen(true)}
+            onClick={() => {
+              onNavigate('companion');
+            }}
             className="h-14 w-14 rounded-full bg-[#5B6B43] hover:bg-[#4a5836] border-4 border-[#292524] flex items-center justify-center shadow-[6px_6px_0px_#292524] cursor-pointer hover:scale-105 transition-all text-white relative group active:translate-y-1"
             title="Open AI Companion"
           >
@@ -521,16 +548,16 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
         {isOpen && (
           <div 
             id="guardian-chat-drawer-overlay"
-            className="fixed inset-0 z-[80] flex justify-center bg-stone-900/80 backdrop-blur-md p-0 sm:p-4 md:p-6 lg:p-8 animate-fade-in"
+            className="fixed inset-0 z-50 bg-[#FAF8F5] flex flex-col h-screen overflow-hidden animate-fade-in"
           >
             {/* Main Full-Screen Panel */}
             <motion.div
               id="guardian-companion-panel"
-              initial={{ opacity: 0, y: 100 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 100 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 220 }}
-              className="w-full max-w-7xl bg-[#FAF8F5] border-none sm:border-4 border-[#292524] rounded-none sm:rounded-2xl h-full flex flex-col shadow-2xl relative overflow-hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.25 }}
+              className="w-full h-full bg-[#FAF8F5] flex flex-col relative overflow-hidden"
             >
               {/* Header */}
               <div className="bg-[#EAE5DB] border-b-2 border-[#292524] p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shrink-0">

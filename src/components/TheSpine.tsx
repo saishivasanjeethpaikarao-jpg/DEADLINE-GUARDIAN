@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { 
-  Home, Calendar, Sparkles, List, Settings, LogOut, Flame, ShieldAlert, Sparkle, Mail, Cloud, RefreshCw, AlertCircle
+  Home, Calendar, Sparkles, List, Settings, LogOut, Flame, ShieldAlert, Sparkle, Mail, Cloud, RefreshCw, AlertCircle, Bot
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Task } from '../types';
@@ -9,8 +9,8 @@ import { calculateStreak } from '../lib/tasks';
 
 interface TheSpineProps {
   tasks?: Task[];
-  currentView: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'email-agent';
-  onNavigate: (view: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'email-agent') => void;
+  currentView: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'email-agent' | 'companion';
+  onNavigate: (view: 'dashboard' | 'tasks' | 'calendar' | 'settings' | 'voice-input' | 'email-agent' | 'companion') => void;
   isExpanded?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
 }
@@ -39,6 +39,7 @@ export const TheSpine: React.FC<TheSpineProps> = ({
   // Custom navigation items configuration matching specs
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, description: 'Command Center' },
+    { id: 'companion', label: 'Guardian Chat', icon: Bot, description: 'Autonomous Coach' },
     { id: 'email-agent', label: 'Email Agent', icon: Mail, description: 'Smart Email Copilot' },
     { id: 'calendar', label: 'Calendar', icon: Calendar, description: 'Weekly Blocks' },
     { id: 'voice-input', label: 'AI Agent', icon: Sparkles, description: 'Guardian Voice Coach' },
@@ -55,7 +56,7 @@ export const TheSpine: React.FC<TheSpineProps> = ({
       id="the-spine-navigation"
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
-      className="fixed left-0 top-0 bottom-0 h-full z-50 flex flex-col justify-between border-r-2 border-[#5B6B43]/20 text-[#292524] select-none shadow-[10px_0_35px_rgba(41,37,36,0.06)] overflow-y-auto scrollbar-none"
+      className="fixed left-0 top-0 bottom-0 h-full z-30 flex flex-col justify-between border-r-2 border-[#5B6B43]/20 text-[#292524] select-none shadow-[10px_0_35px_rgba(41,37,36,0.06)] overflow-y-auto scrollbar-none"
       style={{
         background: 'linear-gradient(180deg, #F0ECE3 0%, #EAE5DB 100%)',
         scrollbarWidth: 'none',

@@ -284,6 +284,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSaved }) => {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Alex Carter"
+                title="Your Full Name"
                 className="w-full bg-[#F5F1EB] border-2 border-[#292524] rounded-xl px-4 py-2.5 text-xs text-[#292524] placeholder-[#292524]/40 font-dm focus:outline-none focus:ring-1 focus:ring-[#5B6B43]"
                 required
               />
@@ -304,6 +305,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSaved }) => {
                   value={partnerEmail}
                   onChange={(e) => setPartnerEmail(e.target.value)}
                   placeholder="parent-email@example.com"
+                  title="Partner Email Address"
                   className="w-full bg-[#F5F1EB] border-2 border-[#292524] rounded-xl px-4 py-2.5 text-xs text-[#292524] placeholder-[#292524]/40 font-dm focus:outline-none focus:ring-1 focus:ring-[#5B6B43]"
                 />
               </div>
@@ -318,6 +320,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSaved }) => {
                       checked={autoSendEmails}
                       disabled={autoSendLoading}
                       onChange={(e) => handleToggleAutoSend(e.target.checked)}
+                      title="Auto-Send Urgent Smart Emails"
+                      aria-label="Auto-Send Smart Emails"
                       className="accent-[#5B6B43] h-4 w-4 rounded mt-0.5 shrink-0 cursor-pointer"
                     />
                   )}
@@ -445,6 +449,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSaved }) => {
                     type="checkbox"
                     checked={peakMorning}
                     onChange={(e) => setPeakMorning(e.target.checked)}
+                    title="Morning Focus peak window"
+                    aria-label="Morning Focus peak window"
                     className="accent-[#5B6B43] h-4 w-4 rounded"
                   />
                   Morning Focus (09:00 AM – 12:00 PM)
@@ -455,6 +461,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ onSaved }) => {
                     type="checkbox"
                     checked={peakAfternoon}
                     onChange={(e) => setPeakAfternoon(e.target.checked)}
+                    title="Afternoon Focus peak window"
+                    aria-label="Afternoon Focus peak window"
                     className="accent-[#5B6B43] h-4 w-4 rounded"
                   />
                   Afternoon Focus (02:00 PM – 05:00 PM)

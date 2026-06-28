@@ -867,6 +867,7 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
                   ref={fileInputRef}
                   onChange={handleFileSelect}
                   multiple
+                  title="Upload Files"
                   className="hidden"
                 />
 
@@ -887,6 +888,7 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
                   value={inputMessage}
                   onChange={handleInputChange}
                   placeholder="Ask me anything... (try /email, /alarm)"
+                  title="Chat input message"
                   className="flex-1 bg-white border-2 border-[#292524] p-2 rounded-xl text-xs font-dm shadow-[2px_2px_0px_#292524] text-[#292524] focus:outline-none"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleSendMessage();

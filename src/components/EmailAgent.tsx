@@ -504,6 +504,8 @@ export const EmailAgent: React.FC = () => {
                 disabled={autoSendLoading}
                 onChange={(e) => handleToggleAutoSend(e.target.checked)}
                 className="accent-[#5B6B43] h-4 w-4 rounded cursor-pointer"
+                title="Auto-Send Urgent Emails"
+                aria-label="Auto-Send Urgent"
               />
             )}
             <span>{autoSendLoading ? "Syncing..." : "Auto-Send Urgent ⚡"}</span>
@@ -894,6 +896,8 @@ export const EmailAgent: React.FC = () => {
                       type="text"
                       value={editToName}
                       onChange={(e) => setEditToName(e.target.value)}
+                      placeholder="Enter recipient's name"
+                      title="Recipient Name"
                       className="w-full bg-white border-2 border-[#292524] rounded-lg px-3 py-2 text-xs font-dm text-[#292524] focus:outline-none"
                     />
                   </div>
@@ -903,6 +907,8 @@ export const EmailAgent: React.FC = () => {
                       type="email"
                       value={editTo}
                       onChange={(e) => setEditTo(e.target.value)}
+                      placeholder="Enter recipient's email"
+                      title="Recipient Email"
                       className="w-full bg-white border-2 border-[#292524] rounded-lg px-3 py-2 text-xs font-dm text-[#292524] focus:outline-none"
                     />
                   </div>
@@ -914,6 +920,8 @@ export const EmailAgent: React.FC = () => {
                     type="text"
                     value={editSubject}
                     onChange={(e) => setEditSubject(e.target.value)}
+                    placeholder="Enter email subject line"
+                    title="Subject Line"
                     className="w-full bg-white border-2 border-[#292524] rounded-lg px-3 py-2 text-xs font-dm text-[#292524] focus:outline-none"
                   />
                 </div>
@@ -925,6 +933,7 @@ export const EmailAgent: React.FC = () => {
                     value={editCc}
                     onChange={(e) => setEditCc(e.target.value)}
                     placeholder="e.g. colleague@company.com"
+                    title="CC Email Addresses"
                     className="w-full bg-white border-2 border-[#292524] rounded-lg px-3 py-2 text-xs font-dm text-[#292524] focus:outline-none"
                   />
                 </div>
@@ -935,6 +944,8 @@ export const EmailAgent: React.FC = () => {
                     rows={8}
                     value={editBody}
                     onChange={(e) => setEditBody(e.target.value)}
+                    placeholder="Enter email content body"
+                    title="Email Body"
                     className="w-full bg-white border-2 border-[#292524] rounded-lg px-3.5 py-2.5 text-xs font-dm text-stone-700 focus:outline-none leading-relaxed"
                   />
                 </div>

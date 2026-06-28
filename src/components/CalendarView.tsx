@@ -768,6 +768,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   placeholder="e.g. Design Hackathon Pitch deck"
                   value={newTaskName}
                   onChange={(e) => setNewTaskName(e.target.value)}
+                  title="Project / Goal Name"
                   className="w-full bg-white border-2 border-[#292524] px-3.5 py-2 rounded-xl text-xs font-dm font-semibold text-[#292524] focus:outline-none"
                 />
               </div>
@@ -780,6 +781,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   <select
                     value={newTaskPriority}
                     onChange={(e) => setNewTaskPriority(e.target.value as TaskPriority)}
+                    title="Priority Tier"
                     className="w-full bg-white border-2 border-[#292524] px-3 py-2 rounded-xl text-xs font-dm font-semibold text-[#292524] focus:outline-none"
                   >
                     <option value="low">🟢 Low priority</option>
@@ -798,6 +800,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     required
                     value={newTaskTime}
                     onChange={(e) => setNewTaskTime(e.target.value)}
+                    placeholder="Select time"
+                    title="Deadline Time"
                     className="w-full bg-white border-2 border-[#292524] px-3 py-2 rounded-xl text-xs font-mono font-bold text-[#292524] focus:outline-none"
                   />
                 </div>
@@ -810,6 +814,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 <select
                   value={newTaskCategory}
                   onChange={(e) => setNewTaskCategory(e.target.value)}
+                  title="Category Tag"
                   className="w-full bg-white border-2 border-[#292524] px-3 py-2 rounded-xl text-xs font-dm font-semibold text-[#292524] focus:outline-none"
                 >
                   <option value="work">💼 Work / Tech</option>
@@ -827,6 +832,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   placeholder="Optional notes or resources..."
                   value={newTaskDesc}
                   onChange={(e) => setNewTaskDesc(e.target.value)}
+                  title="Brief Goal Description"
                   rows={2}
                   className="w-full bg-white border-2 border-[#292524] px-3.5 py-1.5 rounded-xl text-xs font-dm font-semibold text-[#292524] focus:outline-none resize-none"
                 />
@@ -871,11 +877,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     placeholder="Add step/milestone..."
                     value={newSubtaskName}
                     onChange={(e) => setNewSubtaskName(e.target.value)}
+                    title="Add step/milestone name"
                     className="flex-1 bg-white border-2 border-[#292524] px-3 py-1.5 rounded-xl text-xs font-dm font-semibold text-[#292524] focus:outline-none"
                   />
                   <select
                     value={newSubtaskDuration}
                     onChange={(e) => setNewSubtaskDuration(Number(e.target.value))}
+                    title="Step Duration"
                     className="bg-white border-2 border-[#292524] px-2 py-1.5 rounded-xl text-xs font-mono font-bold text-[#292524] focus:outline-none"
                   >
                     <option value={15}>15m</option>

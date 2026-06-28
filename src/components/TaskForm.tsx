@@ -171,6 +171,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded }) => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g., Physics Midterm Prep"
+              title="Task Title"
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
             />
           </div>
@@ -183,6 +184,8 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded }) => {
                 required
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
+                placeholder="Select date and time"
+                title="Target Deadline"
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
               />
             </div>
@@ -196,6 +199,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded }) => {
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                title="Category"
                 className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
               >
                 <option value="work">💼 Work / Coding</option>
@@ -213,6 +217,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded }) => {
             <select
               value={priority}
               onChange={(e) => setPriority(e.target.value as TaskPriority)}
+              title="Priority Level"
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 appearance-none cursor-pointer"
             >
               <option value="critical">🔥 Critical Urgency</option>
@@ -229,6 +234,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded }) => {
               value={locationHint}
               onChange={(e) => setLocationHint(e.target.value)}
               placeholder="e.g., Home Office / Library"
+              title="Location Hint"
               className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500"
             />
           </div>
@@ -240,6 +246,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded }) => {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Add specific rules, details or objectives for this plan..."
+            title="Description"
             rows={2}
             className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 resize-none"
           />
@@ -278,6 +285,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded }) => {
               value={newSubtaskName}
               onChange={(e) => setNewSubtaskName(e.target.value)}
               placeholder="Add next block name (e.g. Write Introduction)"
+              title="Subtask Block Name"
               className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
             />
             <input
@@ -285,6 +293,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ onTaskAdded }) => {
               value={newSubtaskDuration}
               onChange={(e) => setNewSubtaskDuration(parseInt(e.target.value) || 15)}
               placeholder="Duration (mins)"
+              title="Subtask Duration"
               className="w-24 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-900 rounded-lg px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
               min={5}
             />

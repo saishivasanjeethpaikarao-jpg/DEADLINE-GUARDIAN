@@ -141,6 +141,7 @@ export const VoiceInputButton: React.FC<{ onTaskAdded: () => void }> = ({ onTask
                   value={manualInput}
                   onChange={(e) => setManualInput(e.target.value)}
                   placeholder="e.g., I have an AI ethics presentation due Friday at 5 PM..."
+                  title="AI Task Parser & Quick Input"
                   disabled={isRecording || isProcessing}
                   className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl pl-4 pr-12 py-3.5 text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition-colors"
                 />

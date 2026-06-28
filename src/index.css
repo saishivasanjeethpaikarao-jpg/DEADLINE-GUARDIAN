@@ -77,3 +77,30 @@
   display: none;
 }
 
+/* Cross-browser backdrop-filter fallback for Safari */
+.backdrop-blur-md {
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+.backdrop-blur-sm {
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.backdrop-blur-xs {
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+/* Cross-browser user-select compatibility for older Safari and other engines */
+.select-none {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Webkit custom scrollbars and standard scrollbar compatibility */
+* {
+  scrollbar-width: thin;
+}
+

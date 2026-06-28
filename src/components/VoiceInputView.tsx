@@ -832,6 +832,7 @@ export const VoiceInputView: React.FC<VoiceInputViewProps> = ({
                 type="file" 
                 ref={fileInputRef} 
                 onChange={handleChatFileSelect} 
+                title="Attach Syllabus or Calendar"
                 className="hidden" 
                 multiple 
               />
@@ -856,6 +857,7 @@ export const VoiceInputView: React.FC<VoiceInputViewProps> = ({
                   else setShowCommandPalette(false);
                 }}
                 placeholder="Talk to Guardian... (try /email or /alarm)"
+                title="Talk to Guardian"
                 className="flex-1 bg-white border-2 border-[#292524] p-2.5 rounded-xl text-xs font-dm shadow-[2px_2px_0px_#292524] focus:outline-none text-[#292524]"
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') handleSendChatMessage();
@@ -969,6 +971,7 @@ export const VoiceInputView: React.FC<VoiceInputViewProps> = ({
                     value={manualText}
                     onChange={(e) => setManualText(e.target.value)}
                     placeholder="E.g. History essay due tomorrow morning..."
+                    title="Manual text prompt"
                     disabled={isRecordingParser || isProcessingParser}
                     className="flex-1 bg-[#FAF8F5] border-2 border-[#292524] rounded-xl px-3 py-2 text-xs text-[#292524] placeholder-[#292524]/40 font-dm focus:outline-none"
                   />

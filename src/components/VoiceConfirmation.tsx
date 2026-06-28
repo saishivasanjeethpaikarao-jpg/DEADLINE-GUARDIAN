@@ -196,6 +196,8 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
                 type="text"
                 value={taskName}
                 onChange={(e) => setTaskName(e.target.value)}
+                placeholder="Enter task name"
+                title="Task Title"
                 className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
               />
             </div>
@@ -206,6 +208,8 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
                 type="datetime-local"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
+                placeholder="Select date and time"
+                title="Absolute Deadline"
                 className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
               />
             </div>
@@ -215,6 +219,7 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
               <select
                 value={priority}
                 onChange={(e: any) => setPriority(e.target.value)}
+                title="Urgency Priority"
                 className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
               >
                 <option value="low">🟢 Low Priority</option>
@@ -230,6 +235,7 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
+                  title="Category"
                   className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
                 >
                   <option value="work">💼 Work</option>
@@ -247,6 +253,8 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
                   type="text"
                   value={locationHint}
                   onChange={(e) => setLocationHint(e.target.value)}
+                  placeholder="e.g. Office, Home"
+                  title="Ideal Location"
                   className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
                 />
               </div>
@@ -259,6 +267,8 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
               type="text"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+              placeholder="e.g. Study core guidelines"
+              title="Context Objective Description"
               className="w-full bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
             />
           </div>
@@ -282,6 +292,7 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
                         value={st.name}
                         onChange={(e) => updateSubtaskName(st.id, e.target.value)}
                         placeholder="Subtask name..."
+                        title="Subtask Block Name"
                         className="flex-1 font-sans text-xs font-bold text-slate-800 dark:text-slate-100 bg-slate-50/50 hover:bg-slate-100/70 focus:bg-white dark:bg-slate-900/50 dark:hover:bg-slate-850/70 dark:focus:bg-slate-900 border border-slate-200/50 focus:border-indigo-500/35 outline-none rounded px-2.5 py-1.5 transition-all"
                       />
                       <div className="flex items-center gap-1.5 shrink-0">
@@ -289,6 +300,8 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
                           type="number"
                           value={st.durationMinutes}
                           onChange={(e) => updateSubtaskDuration(st.id, Number(e.target.value))}
+                          placeholder="Duration"
+                          title="Subtask Duration"
                           className="w-14 text-center font-mono text-[11px] font-black text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 hover:bg-indigo-100/50 dark:bg-indigo-950/70 dark:hover:bg-indigo-900/50 border border-indigo-200/40 focus:border-indigo-500/35 rounded-lg py-1.5 focus:outline-none transition-all"
                           min={1}
                         />
@@ -314,12 +327,14 @@ export const VoiceConfirmation: React.FC<VoiceConfirmationProps> = ({
                 placeholder="Add subtask step..."
                 value={newSubtaskName}
                 onChange={(e) => setNewSubtaskName(e.target.value)}
+                title="New Subtask Name"
                 className="flex-1 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg px-3 py-1.5 text-xs text-slate-800 dark:text-slate-100 focus:outline-none"
               />
               <input
                 type="number"
                 value={newSubtaskDur}
                 onChange={(e) => setNewSubtaskDur(Number(e.target.value))}
+                placeholder="Duration"
                 className="w-16 bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-850 rounded-lg px-2 py-1.5 text-xs text-slate-800 dark:text-slate-100 text-center focus:outline-none"
                 title="Duration in minutes"
               />

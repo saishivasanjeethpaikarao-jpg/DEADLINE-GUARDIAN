@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 import { createServer as createViteServer } from "vite";
 import { google } from "googleapis";
@@ -405,13 +406,34 @@ app.post("/api/calendar/delete-event", async (req, res) => {
 // ==================== MOUNT VITE / STATIC MIDDLEWARES ====================
 
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
+  // Determine if we should serve static production assets
+  const isCjsBundle = typeof __filename !== "undefined" && (__filename.includes("server.cjs") || __filename.includes("dist"));
+  const isStartedWithCjs = process.argv[1] && (process.argv[1].endsWith("server.cjs") || process.argv[1].includes("dist"));
+  const hasNoSourceCode = !fs.existsSync(path.join(process.cwd(), "server.ts"));
+  const isProd = process.env.NODE_ENV === "production" || isCjsBundle || isStartedWithCjs || hasNoSourceCode;
+
+  console.log(`[Deadline Guardian Server] Starting up... (isProd: ${isProd}, NODE_ENV: ${process.env.NODE_ENV})`);
+
+  if (!isProd) {
+    try {
+      console.log(`[Deadline Guardian Server] Initializing Vite Dev Server middleware...`);
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+      console.log(`[Deadline Guardian Server] Vite Dev Server middleware loaded successfully.`);
+    } catch (viteError: any) {
+      console.error(`[Deadline Guardian Server] Failed to load Vite Dev Server middleware:`, viteError);
+      console.log(`[Deadline Guardian Server] Falling back to serving static production files from /dist...`);
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
   } else {
+    console.log(`[Deadline Guardian Server] Serving static production files from /dist...`);
     const distPath = path.join(process.cwd(), "dist");
     app.use(express.static(distPath));
     app.get("*", (req, res) => {
@@ -420,7 +442,7 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`[Deadline Guardian Backend Server] running on http://localhost:${PORT}`);
+    console.log(`[Deadline Guardian Backend Server] running on http://localhost:${PORT} in ${isProd ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
   });
 }
 

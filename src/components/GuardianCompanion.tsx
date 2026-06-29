@@ -78,6 +78,7 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isReading, setIsReading] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
+  const [reconnectingToast, setReconnectingToast] = useState<{ attempt: number; max: number } | null>(null);
   
   // Voice states
   const [voiceMode, setVoiceMode] = useState(false);
@@ -282,17 +283,24 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
     url: string,
     options: RequestInit,
     retries = 3,
-    delayMs = 1000
+    delayMs = 1500
   ): Promise<Response> => {
     let lastError: any = null;
     for (let i = 0; i < retries; i++) {
       try {
+        if (i > 0) {
+          setReconnectingToast({ attempt: i, max: retries });
+        }
         const response = await fetch(url, options);
         if (response.ok) {
+          setReconnectingToast(null);
           return response;
         }
         if (response.status === 503 || response.status === 429 || response.status === 500) {
           console.warn(`[Companion API] Received ${response.status}. Retrying in ${delayMs}ms... (Attempt ${i + 1}/${retries})`);
+          if (i < retries - 1) {
+            setReconnectingToast({ attempt: i + 1, max: retries });
+          }
           await new Promise(resolve => setTimeout(resolve, delayMs));
           delayMs *= 2;
           continue;
@@ -302,11 +310,13 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
         lastError = error;
         console.warn(`[Companion API] Attempt ${i + 1}/${retries} failed: ${error.message || error}`);
         if (i < retries - 1) {
+          setReconnectingToast({ attempt: i + 1, max: retries });
           await new Promise(resolve => setTimeout(resolve, delayMs));
           delayMs *= 2;
         }
       }
     }
+    setReconnectingToast(null);
     throw lastError || new Error(`Failed after ${retries} attempts.`);
   };
 
@@ -1072,6 +1082,18 @@ export const GuardianCompanion: React.FC<GuardianCompanionProps> = ({
           </div>
         )}
       </AnimatePresence>
+
+      {reconnectingToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-[#FCF8D5] border-4 border-[#292524] p-4 rounded-xl shadow-[4px_4px_0px_#292524] animate-bounce">
+          <div className="h-5 w-5 rounded-full border-2 border-t-transparent border-[#5B6B43] animate-spin" />
+          <div className="flex flex-col">
+            <span className="font-serif font-black text-xs text-[#292524]">Reconnecting...</span>
+            <span className="font-mono text-[9px] text-[#5B6B43] uppercase tracking-wider font-bold">
+              Attempt {reconnectingToast.attempt} of {reconnectingToast.max}
+            </span>
+          </div>
+        </div>
+      )}
     </>
   );
 };

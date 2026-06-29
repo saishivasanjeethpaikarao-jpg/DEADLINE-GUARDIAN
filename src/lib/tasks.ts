@@ -364,3 +364,76 @@ export async function getAlarmHistory(userId: string): Promise<AlarmHistoryItem[
   }
 }
 
+/**
+ * Moves completed tasks older than 30 days to an 'archived_tasks' collection in Firestore and deletes them from active 'tasks'
+ */
+export async function archiveOldCompletedTasks(userId: string): Promise<number> {
+  try {
+    if (userId === 'demo-user') {
+      const current = localStorage.getItem('dg_local_tasks_demo');
+      if (!current) return 0;
+      let list: Task[] = JSON.parse(current);
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      
+      const toKeep: Task[] = [];
+      const toArchive: Task[] = [];
+      
+      list.forEach(t => {
+        if (t.status === 'completed' && t.completedAt && new Date(t.completedAt) < thirtyDaysAgo) {
+          toArchive.push(t);
+        } else {
+          toKeep.push(t);
+        }
+      });
+      
+      if (toArchive.length > 0) {
+        localStorage.setItem('dg_local_tasks_demo', JSON.stringify(toKeep));
+        const archivedCurrent = localStorage.getItem('dg_local_archive_demo') || '[]';
+        const archivedList = JSON.parse(archivedCurrent);
+        localStorage.setItem('dg_local_archive_demo', JSON.stringify([...toArchive, ...archivedList]));
+      }
+      return toArchive.length;
+    }
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const q = query(collection(db, TASKS_COLL), where('userId', '==', userId));
+    const snapshot = await getDocs(q);
+    if (snapshot.empty) return 0;
+
+    let archivedCount = 0;
+    for (const taskDoc of snapshot.docs) {
+      const taskData = taskDoc.data() as Task;
+      if (taskData.status === 'completed' && taskData.completedAt && new Date(taskData.completedAt) < thirtyDaysAgo) {
+        const archiveRef = doc(db, 'archived_tasks', taskDoc.id);
+        await setDoc(archiveRef, {
+          ...taskData,
+          archivedAt: new Date().toISOString()
+        });
+        await deleteDoc(doc(db, TASKS_COLL, taskDoc.id));
+        archivedCount++;
+      }
+    }
+
+    if (archivedCount > 0) {
+      // Sync local cache
+      try {
+        const current = localStorage.getItem(`dg_tasks_${userId}`);
+        if (current) {
+          const list: Task[] = JSON.parse(current);
+          const filtered = list.filter(t => !(t.status === 'completed' && t.completedAt && new Date(t.completedAt) < thirtyDaysAgo));
+          localStorage.setItem(`dg_tasks_${userId}`, JSON.stringify(filtered));
+        }
+      } catch (lc) {}
+    }
+
+    return archivedCount;
+  } catch (e) {
+    console.error("Error archiving completed tasks:", e);
+    return 0;
+  }
+}
+
+

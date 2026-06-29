@@ -51,6 +51,7 @@ export const VoiceInputView: React.FC<VoiceInputViewProps> = ({
   onSyncCalendar
 }) => {
   const [activeTab, setActiveTab] = useState<'chat' | 'parser'>('chat');
+  const [showCheatSheet, setShowCheatSheet] = useState(true);
   
   // ==================== STATE FOR VOICE PLANNER (TAB 2) ====================
   const [isRecordingParser, setIsRecordingParser] = useState(false);
@@ -521,13 +522,22 @@ export const VoiceInputView: React.FC<VoiceInputViewProps> = ({
     <div className="space-y-6 flex-1 min-h-0 flex flex-col w-full h-full max-w-7xl mx-auto">
       {/* Back to Dashboard and Dual-Tab Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-        <button
-          onClick={onBack}
-          className="flex items-center gap-2 bg-[#FAF8F5] hover:bg-[#FAF8F5]/80 border-2 border-[#292524] px-4 py-2 rounded-xl text-xs font-dm font-bold text-[#292524] shadow-[3px_3px_0px_#292524] active:translate-y-0.5 cursor-pointer self-start"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Dashboard
-        </button>
+        <div className="flex items-center gap-2 self-start">
+          <button
+            onClick={onBack}
+            className="flex items-center gap-2 bg-[#FAF8F5] hover:bg-[#FAF8F5]/80 border-2 border-[#292524] px-4 py-2 rounded-xl text-xs font-dm font-bold text-[#292524] shadow-[3px_3px_0px_#292524] active:translate-y-0.5 cursor-pointer"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </button>
+          
+          <button
+            onClick={() => setShowCheatSheet(true)}
+            className="flex items-center gap-1.5 bg-[#FCF8D5] hover:bg-[#FCF8D5]/80 border-2 border-[#292524] px-4 py-2 rounded-xl text-xs font-mono font-black text-[#5B6B43] shadow-[3px_3px_0px_#292524] active:translate-y-0.5 cursor-pointer"
+          >
+            💡 Dictation Manual
+          </button>
+        </div>
 
         {/* Tab switch bar */}
         <div className="bg-[#EAE5DB] border-2 border-[#292524] p-1 rounded-xl flex shadow-[3px_3px_0px_#292524]">
@@ -988,6 +998,102 @@ export const VoiceInputView: React.FC<VoiceInputViewProps> = ({
           )
         )}
       </div>
+
+      {/* Voice Command Cheat Sheet Modal */}
+      <AnimatePresence>
+        {showCheatSheet && (
+          <div className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-[#FAF8F5] border-4 border-[#292524] rounded-2xl max-w-2xl w-full p-6 shadow-[8px_8px_0px_#292524] relative overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex justify-between items-start border-b-2 border-[#292524]/10 pb-4 mb-4">
+                <div className="space-y-1.5 text-left">
+                  <span className="font-mono text-[9px] font-black uppercase text-[#C4705A] tracking-wider bg-[#C4705A]/10 border border-[#C4705A]/30 px-2 py-0.5 rounded-md">
+                    COACH MANUAL
+                  </span>
+                  <h3 className="font-serif font-black text-[#292524] text-lg flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-[#5B6B43]" />
+                    Guardian Dictation Command Sheet
+                  </h3>
+                  <p className="font-dm text-xs text-[#292524]/70">
+                    Use these speech patterns in Guardian Chat or Voice Planner to automate your calendar armor.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCheatSheet(false)}
+                  className="h-8 w-8 rounded-lg border-2 border-[#292524] bg-white flex items-center justify-center hover:bg-stone-50 cursor-pointer shadow-[2px_2px_0px_#292524] active:translate-y-0.5 shrink-0"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {/* Cheat Sheet Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[280px] overflow-y-auto pr-1 scrollbar-thin text-left">
+                {/* Section 1 */}
+                <div className="border-2 border-[#292524]/10 rounded-xl p-3 bg-[#EAE5DB]/25 space-y-2">
+                  <h4 className="font-serif font-black text-xs text-[#5B6B43] uppercase tracking-wide">
+                    📅 Task & Milestone Planning
+                  </h4>
+                  <ul className="space-y-1.5 font-mono text-[10px] text-[#292524]/85">
+                    <li className="font-semibold text-stone-600">"Create a 4-hour study task for final exam next Friday"</li>
+                    <li className="font-semibold text-stone-600">"Add biology report due by tomorrow 3 PM with 3 subtasks"</li>
+                  </ul>
+                </div>
+
+                {/* Section 2 */}
+                <div className="border-2 border-[#292524]/10 rounded-xl p-3 bg-[#EAE5DB]/25 space-y-2">
+                  <h4 className="font-serif font-black text-xs text-[#5B6B43] uppercase tracking-wide">
+                    ⏰ Alarms & Micro-Alarms
+                  </h4>
+                  <ul className="space-y-1.5 font-mono text-[10px] text-[#292524]/85">
+                    <li className="font-semibold text-stone-600">"Set focus alarm for 4 PM today to read lecture notes"</li>
+                    <li className="font-semibold text-stone-600">"Set study alert for economics tomorrow noon"</li>
+                  </ul>
+                </div>
+
+                {/* Section 3 */}
+                <div className="border-2 border-[#292524]/10 rounded-xl p-3 bg-[#EAE5DB]/25 space-y-2">
+                  <h4 className="font-serif font-black text-xs text-[#5B6B43] uppercase tracking-wide">
+                    📨 Accountability Partners
+                  </h4>
+                  <ul className="space-y-1.5 font-mono text-[10px] text-[#292524]/85">
+                    <li className="font-semibold text-stone-600">"Draft an update email to study buddy about my progress"</li>
+                    <li className="font-semibold text-stone-600">"Draft warning email to partner regarding presentation"</li>
+                  </ul>
+                </div>
+
+                {/* Section 4 */}
+                <div className="border-2 border-[#292524]/10 rounded-xl p-3 bg-[#EAE5DB]/25 space-y-2">
+                  <h4 className="font-serif font-black text-xs text-[#5B6B43] uppercase tracking-wide">
+                    ⚙️ App Customization
+                  </h4>
+                  <ul className="space-y-1.5 font-mono text-[10px] text-[#292524]/85">
+                    <li className="font-semibold text-stone-600">"Change my profile display name to Captain Sai"</li>
+                    <li className="font-semibold text-stone-600">"Turn on automatic emails in my setup"</li>
+                  </ul>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="mt-5 border-t-2 border-[#292524]/10 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-left">
+                <div className="font-mono text-[9px] text-[#5B6B43]/80">
+                  ⚡ Use <strong className="font-black text-[#5B6B43]">/ (slash)</strong> keys to access quick command snippets instantly in the input bar.
+                </div>
+                <button
+                  onClick={() => setShowCheatSheet(false)}
+                  className="bg-[#5B6B43] hover:bg-[#4a5836] text-[#FAF8F5] border-2 border-[#292524] px-4 py-2 rounded-xl text-xs font-mono font-black tracking-wider uppercase shadow-[3px_3px_0px_#292524] active:translate-y-0.5 transition-all self-end"
+                >
+                  Understood, Coach!
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

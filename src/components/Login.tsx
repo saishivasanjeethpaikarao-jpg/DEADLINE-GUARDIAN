@@ -3,7 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { Logo } from './Logo';
 import { 
   Mic, Calendar, Clock, Sparkles, AlertTriangle, ArrowRight, 
-  Volume2, Check, Chrome, Play, Mail, CheckSquare, Sparkle 
+  Volume2, Check, Chrome, Play, Mail, CheckSquare, Sparkle, Brain, Bot 
 } from 'lucide-react';
 
 export const Login: React.FC = () => {
@@ -331,48 +331,103 @@ export const Login: React.FC = () => {
 
           <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
             
-            {/* Feature card 1 */}
-            <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-xl p-5 shadow-[4px_4px_0px_#292524] hover:-translate-y-0.5 transition-all">
-              <div className="h-10 w-10 bg-[#5B6B43]/10 text-[#5B6B43] rounded-lg flex items-center justify-center border border-[#5B6B43]/20 mb-4">
-                <Mic className="h-5 w-5" />
+            {/* Feature card 1: Focus Chamber */}
+            <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-xl p-5 shadow-[4px_4px_0px_#292524] hover:-translate-y-1 hover:shadow-[6px_6px_0px_#292524] transition-all flex flex-col justify-between min-h-[230px] group">
+              <div>
+                <div className="h-10 w-10 bg-[#5B6B43]/10 text-[#5B6B43] rounded-lg flex items-center justify-center border border-[#5B6B43]/20 mb-3">
+                  <Brain className="h-5 w-5" />
+                </div>
+                <h4 className="font-serif font-bold text-base text-[#292524] mb-1">Deep Work Focus Chamber</h4>
+                <p className="font-dm text-xs text-[#292524]/75 leading-relaxed">
+                  Lock out noise, lock in flow. Execute milestones under acoustic protection, build your resiliency streak, and filter out distractions.
+                </p>
               </div>
-              <h4 className="font-serif font-bold text-base text-[#292524] mb-1.5">Voice Input Analysis</h4>
-              <p className="font-dm text-xs text-[#292524]/75 leading-relaxed">
-                Describe your project, anxiety or timeline in your own style. Gemini extracts specific action structures easily.
-              </p>
+              
+              {/* Interactive Preview Element */}
+              <div className="mt-4 bg-[#F5F1EB] border border-[#292524]/10 rounded-xl p-2.5 flex items-center justify-between font-mono">
+                <div className="flex items-center gap-1.5">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-[9px] text-[#292524]/75 font-black uppercase tracking-wider">Acoustic Shield</span>
+                </div>
+                <span className="text-[11px] font-black text-[#292524] bg-[#FAF8F5] border border-[#292524]/25 px-2 py-0.5 rounded shadow-[1px_1px_0px_rgba(41,37,36,0.1)]">
+                  ⏱️ 25:00
+                </span>
+              </div>
             </div>
 
-            {/* Feature card 2 */}
-            <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-xl p-5 shadow-[4px_4px_0px_#292524] hover:-translate-y-0.5 transition-all">
-              <div className="h-10 w-10 bg-[#4285F4]/10 text-[#4285F4] rounded-lg flex items-center justify-center border border-[#4285F4]/20 mb-4">
-                <Calendar className="h-5 w-5" />
+            {/* Feature card 2: Calendar Sync */}
+            <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-xl p-5 shadow-[4px_4px_0px_#292524] hover:-translate-y-1 hover:shadow-[6px_6px_0px_#292524] transition-all flex flex-col justify-between min-h-[230px] group">
+              <div>
+                <div className="h-10 w-10 bg-blue-50 text-blue-700 rounded-lg flex items-center justify-center border border-blue-200 mb-3">
+                  <Calendar className="h-5 w-5" />
+                </div>
+                <h4 className="font-serif font-bold text-base text-[#292524] mb-1">Autopilot Calendar Sync</h4>
+                <p className="font-dm text-xs text-[#292524]/75 leading-relaxed">
+                  Bridges and schedules structured task blocks into Google Calendar safely, with intelligent overlap auto-resolution and Google Tasks management.
+                </p>
               </div>
-              <h4 className="font-serif font-bold text-base text-[#292524] mb-1.5">Google Calendar Sync</h4>
-              <p className="font-dm text-xs text-[#292524]/75 leading-relaxed">
-                Automatically blocks scheduled intervals in your Google Calendar dynamically, reserving dedicated time blocks.
-              </p>
+
+              {/* Timeline Blocks Preview */}
+              <div className="mt-4 flex gap-1.5 text-left">
+                <div className="flex-1 bg-[#5B6B43]/10 border border-[#5B6B43]/20 rounded-lg p-1.5 text-center">
+                  <span className="block text-[7px] font-mono text-[#5B6B43] font-black uppercase">09:00 - 11:00</span>
+                  <span className="text-[8px] font-dm text-[#292524]/85 font-bold truncate block mt-0.5">Read syllabus</span>
+                </div>
+                <div className="flex-1 bg-[#C4705A]/10 border border-[#C4705A]/20 rounded-lg p-1.5 text-center">
+                  <span className="block text-[7px] font-mono text-[#C4705A] font-black uppercase">14:00 - 15:30</span>
+                  <span className="text-[8px] font-dm text-[#292524]/85 font-bold truncate block mt-0.5">Draft outline</span>
+                </div>
+              </div>
             </div>
 
-            {/* Feature card 3 */}
-            <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-xl p-5 shadow-[4px_4px_0px_#292524] hover:-translate-y-0.5 transition-all">
-              <div className="h-10 w-10 bg-[#C4705A]/10 text-[#C4705A] rounded-lg flex items-center justify-center border border-[#C4705A]/20 mb-4">
-                <Clock className="h-5 w-5" />
+            {/* Feature card 3: AI Coach */}
+            <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-xl p-5 shadow-[4px_4px_0px_#292524] hover:-translate-y-1 hover:shadow-[6px_6px_0px_#292524] transition-all flex flex-col justify-between min-h-[230px] group">
+              <div>
+                <div className="h-10 w-10 bg-[#FCF8D5] text-[#292524] rounded-lg flex items-center justify-center border border-[#292524]/20 mb-3">
+                  <Bot className="h-5 w-5" />
+                </div>
+                <h4 className="font-serif font-bold text-base text-[#292524] mb-1">Guardian Companion AI</h4>
+                <p className="font-dm text-xs text-[#292524]/75 leading-relaxed">
+                  Your voice-activated emotional buffer and study partner. Feed in syllabi, panic worries, or lecture notes to co-author realistic milestone schedules.
+                </p>
               </div>
-              <h4 className="font-serif font-bold text-base text-[#292524] mb-1.5">Smart Proactive Coach</h4>
-              <p className="font-dm text-xs text-[#292524]/75 leading-relaxed">
-                Our vocal synth coach interrupts you with customized sound alerts and direct advice if tasks are due.
-              </p>
+
+              {/* Chat Bubble Preview */}
+              <div className="mt-4 bg-[#FCF8D5]/40 border border-[#292524]/15 rounded-xl p-2 relative text-left">
+                <div className="flex items-start gap-1.5">
+                  <div className="h-4.5 w-4.5 rounded bg-[#C4705A] text-white flex items-center justify-center font-serif text-[9px] font-black shrink-0">G</div>
+                  <p className="font-dm text-[9px] font-bold text-[#292524]/85 italic leading-snug">
+                    "Sai, let's turn that overwhelming syllabus goal into active focus milestones."
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Feature card 4 */}
-            <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-xl p-5 shadow-[4px_4px_0px_#292524] hover:-translate-y-0.5 transition-all">
-              <div className="h-10 w-10 bg-[#5B6B43]/10 text-[#5B6B43] rounded-lg flex items-center justify-center border border-[#5B6B43]/20 mb-4">
-                <Sparkle className="h-5 w-5" />
+            {/* Feature card 4: Email Agent */}
+            <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-xl p-5 shadow-[4px_4px_0px_#292524] hover:-translate-y-1 hover:shadow-[6px_6px_0px_#292524] transition-all flex flex-col justify-between min-h-[230px] group">
+              <div>
+                <div className="h-10 w-10 bg-[#C4705A]/10 text-[#C4705A] rounded-lg flex items-center justify-center border border-[#C4705A]/20 mb-3">
+                  <Mail className="h-5 w-5" />
+                </div>
+                <h4 className="font-serif font-bold text-base text-[#292524] mb-1">Accountability Email Agent</h4>
+                <p className="font-dm text-xs text-[#292524]/75 leading-relaxed">
+                  Automatically draft persuasive, polite apologies or update emails to advisors, professors, or team leads the moment a schedule shifts.
+                </p>
               </div>
-              <h4 className="font-serif font-bold text-base text-[#292524] mb-1.5">AI Preparation Prep Gen</h4>
-              <p className="font-dm text-xs text-[#292524]/75 leading-relaxed">
-                Generates a helpful preparation toolkit for each subtask with key concepts, templates, and reference materials.
-              </p>
+
+              {/* Envelope Preview */}
+              <div className="mt-4 bg-[#FAF8F5] border-2 border-dashed border-[#292524]/30 rounded-xl p-2 flex flex-col gap-0.5 text-[8px] font-mono text-left">
+                <div className="flex items-center gap-1 border-b border-[#292524]/10 pb-0.5 text-[#292524]/65">
+                  <span className="font-black">TO:</span> advisor@university.edu
+                </div>
+                <div className="flex items-center justify-between text-[#5B6B43] font-black mt-1">
+                  <span>Draft Autopilot Ready</span>
+                  <span className="text-[7px] bg-[#5B6B43]/15 border border-[#5B6B43]/20 px-1 rounded uppercase">Active</span>
+                </div>
+              </div>
             </div>
 
           </div>

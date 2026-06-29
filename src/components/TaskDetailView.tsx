@@ -5,6 +5,7 @@ import { saveTaskToDb, deleteTaskFromDb } from '../lib/tasks';
 import { playSuccessChime } from '../lib/audio';
 import { generateGoogleCalendarLink, generateIcsFile } from '../lib/calendarSync';
 import confetti from 'canvas-confetti';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   ArrowLeft, Trash2, Calendar, CheckCircle2, Circle, 
   RefreshCw, Clock, Sparkles, BookOpen, Mail, Copy, ChevronDown, ChevronUp, CheckCircle, ExternalLink 
@@ -47,6 +48,16 @@ export const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, onBack, on
         const nextStatus: any = s.status === 'completed' ? 'pending' : 'completed';
         if (nextStatus === 'completed') {
           playSuccessChime();
+          try {
+            confetti({
+              particleCount: 40,
+              spread: 60,
+              origin: { y: 0.7 },
+              colors: ['#5B6B43', '#C9A96E', '#C4705A']
+            });
+          } catch (e) {
+            console.error(e);
+          }
         }
         return { ...s, status: nextStatus };
       }
@@ -300,9 +311,19 @@ export const TaskDetailView: React.FC<TaskDetailViewProps> = ({ task, onBack, on
                   >
                     <div className="mt-0.5 shrink-0">
                       {isDone ? (
-                        <CheckCircle2 className="h-4.5 w-4.5 text-[#5B6B43] fill-[#5B6B43]/10" />
+                        <motion.div
+                          initial={{ scale: 0.6, rotate: -20 }}
+                          animate={{ scale: [1, 1.4, 1], rotate: [0, 12, 0] }}
+                          transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                        >
+                          <CheckCircle2 className="h-4.5 w-4.5 text-[#5B6B43] fill-[#5B6B43]/10" />
+                        </motion.div>
                       ) : (
-                        <div className="h-4.5 w-4.5 rounded-full border-2 border-[#292524] hover:border-[#5B6B43]" />
+                        <motion.div 
+                          whileHover={{ scale: 1.15 }}
+                          whileTap={{ scale: 0.85 }}
+                          className="h-4.5 w-4.5 rounded-full border-2 border-[#292524] hover:border-[#5B6B43] bg-white flex items-center justify-center cursor-pointer"
+                        />
                       )}
                     </div>
                     

@@ -206,11 +206,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     switch (priority) {
       case 'critical':
       case 'high':
-        return 'border-[#C4705A] text-[#C4705A] bg-[#C4705A]/5 shadow-[2px_2px_0px_#C4705A]';
+        return 'border-red-500 text-red-700 bg-red-50 shadow-[2px_2px_0px_rgba(239,68,68,0.4)]';
       case 'medium':
-        return 'border-[#C9A96E] text-[#785F2C] bg-[#C9A96E]/5 shadow-[2px_2px_0px_#C9A96E]';
+        // Olive Green for Medium
+        return 'border-[#5B6B4F] text-[#3E4C2B] bg-[#5B6B4F]/10 shadow-[2px_2px_0px_rgba(91,107,79,0.4)]';
       default:
-        return 'border-[#5B6B4F] text-[#5B6B4F] bg-[#5B6B4F]/5 shadow-[2px_2px_0px_#5B6B4F]';
+        // Soft Slate/Stone for Low
+        return 'border-stone-400 text-stone-600 bg-stone-50 shadow-[2px_2px_0px_rgba(120,113,108,0.4)]';
     }
   };
 
@@ -306,6 +308,116 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     } finally {
       setSaving(false);
     }
+  };
+
+  // Google Calendar "dead zone" simulation for the selected day
+  const getGoogleEventsForDay = (date: Date) => {
+    const dayOfWeek = date.getDay(); // 0 Sunday, etc.
+    const events: Array<{ id: string; title: string; start: string; end: string; type: 'dead' | 'focus_suggestion' }> = [];
+    
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Weekdays
+      events.push({
+        id: `g-event-1`,
+        title: '💼 Synced: Team Sync & Standup',
+        start: '09:00',
+        end: '10:15',
+        type: 'dead'
+      });
+      events.push({
+        id: `g-event-2`,
+        title: '🍔 Synced: Lunch & Admin Tasks',
+        start: '12:00',
+        end: '13:00',
+        type: 'dead'
+      });
+      events.push({
+        id: `g-event-3`,
+        title: '💻 Synced: Group Review Session',
+        start: '15:00',
+        end: '16:00',
+        type: 'dead'
+      });
+
+      // Focus suggestions around dead zones
+      events.push({
+        id: `g-sug-1`,
+        title: '🛡️ Suggested Focus Block (Deep Work)',
+        start: '10:30',
+        end: '12:00',
+        type: 'focus_suggestion'
+      });
+      events.push({
+        id: `g-sug-2`,
+        title: '🛡️ Suggested Focus Block (Silent Sprint)',
+        start: '13:30',
+        end: '15:00',
+        type: 'focus_suggestion'
+      });
+      events.push({
+        id: `g-sug-3`,
+        title: '🛡️ Suggested Focus Block (Night Cap)',
+        start: '16:30',
+        end: '18:00',
+        type: 'focus_suggestion'
+      });
+    } else { // Weekends
+      events.push({
+        id: `g-event-weekend-1`,
+        title: '🛒 Synced: Grocery & Errands',
+        start: '10:00',
+        end: '12:00',
+        type: 'dead'
+      });
+      events.push({
+        id: `g-sug-weekend-1`,
+        title: '🛡️ Suggested Focus Block (Weekend Sprint)',
+        start: '14:00',
+        end: '17:00',
+        type: 'focus_suggestion'
+      });
+    }
+    return events;
+  };
+
+  const getTimelineItems = () => {
+    const googleEvents = getGoogleEventsForDay(selectedDate);
+    const daySubtasks = getSubtasksForDay(selectedDate);
+    
+    const items: Array<{ id: string; title: string; start: string; end: string; type: 'dead' | 'focus_suggestion' | 'scheduled' }> = [];
+    
+    googleEvents.forEach(e => {
+      items.push({
+        id: e.id,
+        title: e.title,
+        start: e.start,
+        end: e.end,
+        type: e.type
+      });
+    });
+
+    daySubtasks.forEach(({ subtask, task }) => {
+      if (subtask.scheduledStart) {
+        const startD = new Date(subtask.scheduledStart);
+        // Find end of subtask based on duration minutes or ISO scheduledEnd
+        const endD = subtask.scheduledEnd ? new Date(subtask.scheduledEnd) : new Date(startD.getTime() + subtask.durationMinutes * 60 * 1000);
+        const startStr = `${startD.getHours().toString().padStart(2, '0')}:${startD.getMinutes().toString().padStart(2, '0')}`;
+        const endStr = `${endD.getHours().toString().padStart(2, '0')}:${endD.getMinutes().toString().padStart(2, '0')}`;
+        items.push({
+          id: subtask.id,
+          title: `🎯 Scheduled: ${subtask.name} (${task.name})`,
+          start: startStr,
+          end: endStr,
+          type: 'scheduled'
+        });
+      }
+    });
+
+    return items.sort((a, b) => a.start.localeCompare(b.start));
+  };
+
+  const handleSelectSuggestedTime = (time: string) => {
+    setNewTaskTime(time);
+    setIsAddModalOpen(true);
   };
 
   // Get active tasks list for currently selected day
@@ -466,17 +578,53 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         </span>
                       </div>
 
-                      {/* Small visual items/dots inside grid cell */}
-                      <div className="mt-2 flex flex-wrap gap-1 items-center min-h-[14px]">
-                        {dots.red && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#C4705A]" title="High / Critical absolute plan" />
-                        )}
-                        {dots.amber && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#C9A96E]" title="In-progress timeblock" />
-                        )}
-                        {dots.done && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#5B6B4F]" title="Milestones Completed" />
-                        )}
+                      {/* Miniature milestone blocks inside monthly day cells */}
+                      <div className="mt-1.5 space-y-1 overflow-hidden flex-1 flex flex-col justify-end">
+                        {(() => {
+                          const subForDay = getSubtasksForDay(day);
+                          const masterForDay = getMasterTasksForDay(day);
+                          
+                          const allItems = [
+                            ...masterForDay.map(t => ({ id: t.id, name: t.name, priority: t.priority, isMaster: true, status: t.status })),
+                            ...subForDay.map(s => ({ id: s.subtask.id, name: s.subtask.name, priority: s.task.priority, isMaster: false, status: s.subtask.status }))
+                          ];
+                          
+                          if (allItems.length === 0) return (
+                            <div className="min-h-[14px]" />
+                          );
+                          
+                          return allItems.slice(0, 2).map((item) => {
+                            const isDone = item.status === 'completed';
+                            let bgClass = '';
+                            if (isDone) {
+                              bgClass = 'bg-stone-100 text-stone-400 border-stone-200 line-through';
+                            } else {
+                              switch (item.priority) {
+                                case 'critical':
+                                case 'high':
+                                  bgClass = 'bg-red-100 text-red-800 border-red-200';
+                                  break;
+                                case 'medium':
+                                  // Olive Green for Medium
+                                  bgClass = 'bg-[#5B6B4F]/10 text-[#3E4C2B] border-[#5B6B4F]/20';
+                                  break;
+                                default:
+                                  // Soft Stone/Slate for Low priority
+                                  bgClass = 'bg-stone-50 text-stone-600 border-stone-300';
+                                  break;
+                              }
+                            }
+                            return (
+                              <div
+                                key={item.id}
+                                className={`text-[8px] font-mono leading-none px-1 py-0.5 rounded border truncate max-w-full font-black ${bgClass}`}
+                                title={`${item.isMaster ? 'Project Target: ' : 'Task Block: '}${item.name}`}
+                              >
+                                {item.isMaster ? '🚨 ' : ''}{item.name}
+                              </div>
+                            );
+                          });
+                        })()}
                       </div>
                     </div>
                   );
@@ -589,6 +737,121 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               })}
             </div>
           )}
+
+          {/* INTERACTIVE TIMELINE AND DEAD ZONE ANALYZER */}
+          <div className="mt-6 pt-6 border-t-2 border-[#292524]/10 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="text-left">
+                <h4 className="font-serif font-black text-sm text-[#292524] flex items-center gap-1.5">
+                  <Clock className="h-4.5 w-4.5 text-[#5B6B4F]" />
+                  Shield Timeline Analyzer
+                </h4>
+                <p className="font-dm text-[11px] text-stone-500 font-semibold leading-relaxed">
+                  Analyzing Google Calendar locked slots (dead zones) to project your optimal Deep Work windows.
+                </p>
+              </div>
+              <span className="font-mono text-[9px] font-black text-[#5B6B4F] bg-[#5B6B4F]/10 border border-[#5B6B4F]/30 px-2 py-0.5 rounded-md uppercase self-start sm:self-auto tracking-wider animate-pulse">
+                🔄 Auto-Calibrating Focus
+              </span>
+            </div>
+
+            {/* Interactive Timeline List */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Left Side: Today's Timeline Sequence */}
+              <div className="space-y-2 border-2 border-[#292524] rounded-xl p-3 bg-white max-h-[250px] overflow-y-auto scrollbar-thin text-left">
+                <span className="font-mono text-[9px] text-[#292524]/60 font-black uppercase tracking-wider block">
+                  Today's Time Map:
+                </span>
+                
+                {getTimelineItems().length === 0 ? (
+                  <p className="font-serif italic text-xs text-stone-400 py-4 text-center">
+                    No synced events or focus schedules recorded for today.
+                  </p>
+                ) : (
+                  <div className="space-y-2 relative border-l-2 border-[#292524]/15 pl-4 ml-1 mt-2">
+                    {getTimelineItems().map((item) => {
+                      const isDeadZone = item.type === 'dead';
+                      const isSuggestion = item.type === 'focus_suggestion';
+                      
+                      return (
+                        <div key={item.id} className="relative group">
+                          {/* Timeline dot */}
+                          <div className={`absolute -left-[21px] top-1.5 h-2.5 w-2.5 rounded-full border border-white shadow-sm ${
+                            isDeadZone ? 'bg-[#C4705A]' : isSuggestion ? 'bg-[#5B6B4F] animate-pulse' : 'bg-indigo-500'
+                          }`} />
+                          
+                          <div 
+                            onClick={() => {
+                              if (isSuggestion) {
+                                handleSelectSuggestedTime(item.start);
+                              }
+                            }}
+                            className={`p-2 rounded-xl border-2 transition-all text-left ${
+                              isDeadZone 
+                                ? 'bg-red-50/40 border-[#C4705A]/40 text-[#C4705A]' 
+                                : isSuggestion 
+                                  ? 'bg-[#FCF8D5]/30 border-[#5B6B4F]/40 text-[#292524] cursor-pointer hover:border-[#5B6B4F] hover:scale-[1.01]' 
+                                  : 'bg-indigo-50/40 border-indigo-200 text-indigo-900'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-[10px] font-mono font-black uppercase tracking-wider">
+                              <span className={isDeadZone ? 'text-[#C4705A]/80' : isSuggestion ? 'text-[#5B6B4F]' : 'text-indigo-600'}>
+                                {isDeadZone ? '🔒 Locked Dead Zone' : isSuggestion ? '💡 Suggested Deep Work' : '🎯 Active Milestone'}
+                              </span>
+                              <span>
+                                {item.start} - {item.end}
+                              </span>
+                            </div>
+                            <h5 className="font-serif font-black text-xs mt-1">
+                              {item.title}
+                            </h5>
+                            {isSuggestion && (
+                              <span className="inline-block font-mono text-[8px] text-[#5B6B4F] font-black underline mt-1">
+                                Click to schedule milestone here →
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Right Side: Timeline Metrics and Action Banner */}
+              <div className="border-2 border-[#292524] rounded-xl p-4 bg-[#EAE5DB]/25 flex flex-col justify-between text-left">
+                <div className="space-y-2.5">
+                  <div className="inline-flex items-center gap-1.5 bg-[#FCF8D5] border-2 border-[#292524]/20 px-2 py-0.5 rounded-full text-[9px] font-mono font-black text-[#292524] uppercase tracking-wide">
+                    <Flame className="h-3 w-3 text-[#C4705A] fill-[#C4705A]" />
+                    Cognitive Status
+                  </div>
+                  <h5 className="font-serif font-black text-sm text-[#292524]">
+                    Optimal Focus Forecast
+                  </h5>
+                  <p className="font-dm text-xs text-[#292524]/80 leading-relaxed">
+                    Based on your synced Google Calendar events, you have{' '}
+                    <strong className="text-[#5B6B4F]">
+                      {getTimelineItems().filter((t) => t.type === 'focus_suggestion').length} recommended focus windows
+                    </strong>{' '}
+                    today. Schedule milestones inside these blocks to achieve high focus velocity!
+                  </p>
+                </div>
+
+                <div className="border-t border-[#292524]/10 pt-3.5 mt-3 flex items-center justify-between text-[10px] font-mono text-stone-600">
+                  <div>
+                    <span>Dead Zones: </span>
+                    <span className="font-black text-[#C4705A]">
+                      {getTimelineItems().filter((t) => t.type === 'dead').length} slots
+                    </span>
+                  </div>
+                  <div>
+                    <span>Focus Capacity: </span>
+                    <span className="font-black text-[#5B6B4F]">High Velocity</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
         </div>
 

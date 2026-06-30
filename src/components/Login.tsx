@@ -5,10 +5,21 @@ import {
   Mic, Calendar, Clock, Sparkles, AlertTriangle, ArrowRight, 
   Volume2, Check, Chrome, Play, Mail, CheckSquare, Sparkle, Brain, Bot 
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 
 export const Login: React.FC = () => {
   const { loginWithGoogle, loginAsGuest, loading } = useAuth();
   const [isPlaying, setIsPlaying] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  const handleGoogleLogin = async () => {
+    setAuthError('');
+    try {
+      await loginWithGoogle();
+    } catch (err: any) {
+      setAuthError(err.message || 'Google sign-in failed. Please try again.');
+    }
+  };
 
   // Playful voice feedback of the prototype coach
   const playSamplePrompt = () => {
@@ -23,7 +34,12 @@ export const Login: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F1EB] text-[#292524] font-dm selection:bg-[#5B6B43]/20 selection:text-[#5B6B43] flex flex-col relative overflow-x-hidden pb-16">
+    <motion.div 
+      initial={{ opacity: 0, y: 30 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: 'easeOut' }}
+      className="min-h-screen bg-[#F5F1EB] text-[#292524] font-dm selection:bg-[#5B6B43]/20 selection:text-[#5B6B43] flex flex-col relative overflow-x-hidden pb-16"
+    >
       
       {/* Scattered Organic Background Elements */}
       <div className="absolute top-[8%] left-[-10%] w-[450px] h-[450px] bg-[#5B6B43]/5 rounded-full blur-3xl pointer-events-none" />
@@ -73,34 +89,38 @@ export const Login: React.FC = () => {
               </p>
             </div>
 
-            {/* Micro-Interactive Hero Button Pairing */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-2">
-              <button
-                onClick={loginWithGoogle}
-                disabled={loading}
-                className="bg-[#5B6B43] hover:bg-[#4d5b38] active:translate-y-0.5 disabled:opacity-50 text-[#FAF8F5] font-dm font-bold text-xs sm:text-sm px-6 py-3.5 sm:py-4 rounded-xl shadow-[4px_4px_0px_#292524] border-2 border-[#292524] transition-all cursor-pointer flex items-center justify-center gap-2 group"
-                title="Connect with Google Calendar, Google Tasks, and Firestore database"
-              >
-                <Chrome className="h-4 w-4 shrink-0 text-white" />
-                <span>{loading ? 'Connecting...' : 'Connect Google Account'}</span>
-              </button>
+            {/* Authentication Form & Buttons */}
+            <div className="pt-2 max-w-md">
+              {authError && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="text-red-500 text-xs font-bold flex items-center gap-1.5 mb-3">
+                  <AlertTriangle className="h-3.5 w-3.5" />
+                  {authError}
+                </motion.div>
+              )}
 
-              <button
-                onClick={loginAsGuest}
-                disabled={loading}
-                className="bg-[#C4705A] hover:bg-[#b05d49] active:translate-y-0.5 disabled:opacity-50 text-[#FAF8F5] font-dm font-bold text-xs sm:text-sm px-6 py-3.5 sm:py-4 rounded-xl shadow-[4px_4px_0px_#292524] border-2 border-[#292524] transition-all cursor-pointer flex items-center justify-center gap-2 group"
-                title="Bypass popup blocks and database issues to preview with local demo data instantly!"
-              >
-                <Sparkles className="h-4 w-4 shrink-0 text-white animate-pulse" />
-                <span>Enter Sandbox Mode (Bypass Login)</span>
-              </button>
-              
-              <a
-                href="#how-it-works"
-                className="bg-[#FAF8F5] hover:bg-[#FAF8F5]/85 text-[#292524] border-2 border-[#292524] font-dm font-bold text-xs sm:text-sm px-4 py-3 sm:py-4 rounded-xl shadow-[3px_3px_0px_#292524] hover:shadow-[5px_5px_0px_#292524] transition-all flex items-center justify-center cursor-pointer"
-              >
-                How it works
-              </a>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                <button
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  type="button"
+                  className="flex-1 bg-[#5B6B43] hover:bg-[#4d5b38] active:translate-y-0.5 disabled:opacity-50 text-[#FAF8F5] font-dm font-bold text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-[4px_4px_0px_#292524] border-2 border-[#292524] transition-all cursor-pointer flex items-center justify-center gap-2 group"
+                  title="Connect with Google Calendar, Google Tasks, and Firestore database"
+                >
+                  <Chrome className="h-4 w-4 shrink-0 text-white" />
+                  <span>Google Sign-In</span>
+                </button>
+
+                <button
+                  onClick={loginAsGuest}
+                  disabled={loading}
+                  type="button"
+                  className="flex-1 bg-[#C4705A] hover:bg-[#b05d49] active:translate-y-0.5 disabled:opacity-50 text-[#FAF8F5] font-dm font-bold text-xs sm:text-sm px-4 py-3.5 rounded-xl shadow-[4px_4px_0px_#292524] border-2 border-[#292524] transition-all cursor-pointer flex items-center justify-center gap-2 group"
+                  title="Bypass popup blocks and database issues to preview with local demo data instantly!"
+                >
+                  <Sparkles className="h-4 w-4 shrink-0 text-white animate-pulse" />
+                  <span>Sandbox Mode</span>
+                </button>
+              </div>
             </div>
 
             {/* Trust badge with Google logos */}
@@ -483,7 +503,7 @@ export const Login: React.FC = () => {
         </div>
       </footer>
 
-    </div>
+    </motion.div>
   );
 };
 

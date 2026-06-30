@@ -525,9 +525,12 @@ const AppContent: React.FC = () => {
   };
 
   // Handle Alarm Dismiss
-  const handleAlarmDismiss = () => {
+  const handleAlarmDismiss = (reason?: string) => {
     if (!activeAlarm) return;
-    const { subtask } = activeAlarm;
+    const { task, subtask } = activeAlarm;
+    if (user) {
+      logAlarmEvent(user.uid, task.name, subtask.name, 'dismiss', undefined, reason);
+    }
     setDismissedAlarms(prev => [...prev, subtask.id]);
     setActiveAlarm(null);
   };
@@ -1967,6 +1970,7 @@ ${urgentTasksList || 'No high priority pending tasks. Good job!'}
           initialSnoozeCount={activeAlarm.subtask.snoozeCount || 0}
           onBreakdownSubtask={handleAlarmBreakdownSubtask}
           isBreakingDown={isBreakingDown}
+          taskDescription={activeAlarm.task.description}
         />
       )}
 

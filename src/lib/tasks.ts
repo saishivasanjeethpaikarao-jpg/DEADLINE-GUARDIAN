@@ -292,8 +292,9 @@ export async function logAlarmEvent(
   userId: string,
   taskName: string,
   subtaskName: string,
-  action: 'snooze' | 'complete',
-  minutes?: number
+  action: 'snooze' | 'complete' | 'dismiss',
+  minutes?: number,
+  dismissReason?: string
 ): Promise<void> {
   const item: AlarmHistoryItem = {
     id: `${userId}_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
@@ -302,7 +303,8 @@ export async function logAlarmEvent(
     subtaskName,
     action,
     timestamp: new Date().toISOString(),
-    minutes
+    minutes,
+    dismissReason
   };
 
   try {

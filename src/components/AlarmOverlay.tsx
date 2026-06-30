@@ -10,13 +10,14 @@ interface AlarmOverlayProps {
   note: string;
   onStart: () => void;
   onSnooze: (minutes: number) => void;
-  onDismiss: () => void;
+  onDismiss: (reason?: string) => void;
   prepOutline?: string;
   chimeType?: string;
   snoozeDuration?: number;
   initialSnoozeCount?: number;
   onBreakdownSubtask?: () => void;
   isBreakingDown?: boolean;
+  taskDescription?: string;
 }
 
 export const AlarmOverlay: React.FC<AlarmOverlayProps> = ({
@@ -32,12 +33,14 @@ export const AlarmOverlay: React.FC<AlarmOverlayProps> = ({
   snoozeDuration,
   initialSnoozeCount = 0,
   onBreakdownSubtask,
-  isBreakingDown = false
+  isBreakingDown = false,
+  taskDescription
 }) => {
   const [snoozeCount, setSnoozeCount] = useState(initialSnoozeCount);
   const [showGuardianTipModal, setShowGuardianTipModal] = useState(initialSnoozeCount > 3);
   const [speakActive, setSpeakActive] = useState(false);
   const [showPrepPreview, setShowPrepPreview] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   const hoursLeft = Math.max(0, (new Date(deadline).getTime() - Date.now()) / (1000 * 60 * 60));
 
@@ -163,6 +166,24 @@ export const AlarmOverlay: React.FC<AlarmOverlayProps> = ({
           </div>
         </div>
 
+        {/* Context Card */}
+        {taskDescription && (
+          <div className="bg-[#FCF8D5]/30 border border-[#292524]/20 rounded-xl p-4 text-left space-y-2.5 shadow-sm max-w-lg mx-auto">
+             <div className="flex items-center justify-between">
+               <span className="font-mono text-[9px] uppercase tracking-wider text-[#292524]/50 font-black flex items-center gap-1">
+                 <BookOpen className="h-3 w-3" />
+                 Context Overview
+               </span>
+               <span className="font-mono text-[8px] bg-[#5B6B43]/10 text-[#5B6B43] px-2 py-0.5 rounded-full font-black uppercase">
+                 {hoursLeft < 24 ? 'High Proximity' : 'Low Proximity'}
+               </span>
+             </div>
+            <p className="font-dm text-xs text-[#292524]/80 leading-relaxed italic border-l-2 border-[#5B6B43]/30 pl-2">
+              "{taskDescription}"
+            </p>
+          </div>
+        )}
+
         {/* Coach Speech Note (warm background card) */}
         <div className="bg-[#FCF8D5] border-2 border-[#292524] rounded-xl p-5 text-left space-y-2 max-w-lg mx-auto shadow-[4px_4px_0px_#292524]/10 relative">
           <div className="flex items-center justify-between">
@@ -223,7 +244,7 @@ export const AlarmOverlay: React.FC<AlarmOverlayProps> = ({
             </button>
 
             <button
-              onClick={onDismiss}
+              onClick={() => setShowFeedbackModal(true)}
               className="bg-[#FAF8F5] hover:bg-[#F5F1EB] text-[#292524] border-2 border-[#292524] text-xs font-dm font-bold py-3.5 rounded-xl shadow-[2px_2px_0px_#292524] transition-all active:translate-y-0.5 cursor-pointer"
             >
               <X className="h-4 w-4 mx-auto mb-1" />
@@ -308,6 +329,35 @@ export const AlarmOverlay: React.FC<AlarmOverlayProps> = ({
                 className="w-full bg-white hover:bg-[#F5F1EB] text-[#292524] border-2 border-[#292524] text-xs font-dm font-bold py-2.5 rounded-xl shadow-[2px_2px_0px_#292524] transition-all active:translate-y-0.5 cursor-pointer block"
               >
                 No, just snooze it for now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFeedbackModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-[#292524]/60 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="w-full max-w-sm bg-[#FAF8F5] border-4 border-[#292524] rounded-2xl p-6 text-center shadow-[8px_8px_0px_#292524] relative">
+            <h2 className="font-serif font-black text-xl text-[#292524] mb-2">Dismissal Feedback</h2>
+            <p className="font-dm text-xs text-[#292524]/70 mb-4">
+              Help your AI coach learn. Why are you dismissing this block?
+            </p>
+            
+            <div className="space-y-2">
+              {['Not urgent right now', 'Already finished', 'Doing later today', 'Needs rethinking'].map(reason => (
+                <button
+                  key={reason}
+                  onClick={() => onDismiss(reason)}
+                  className="w-full bg-white hover:bg-[#F5F1EB] text-[#292524] border-2 border-[#292524] text-xs font-dm font-bold py-2.5 rounded-xl shadow-[2px_2px_0px_#292524] transition-all active:translate-y-0.5 cursor-pointer block"
+                >
+                  {reason}
+                </button>
+              ))}
+              <button
+                onClick={() => onDismiss('Other')}
+                className="w-full mt-2 bg-transparent text-[#292524]/60 hover:text-[#292524] text-xs font-dm font-bold py-2 transition-colors cursor-pointer"
+              >
+                Skip / Other
               </button>
             </div>
           </div>

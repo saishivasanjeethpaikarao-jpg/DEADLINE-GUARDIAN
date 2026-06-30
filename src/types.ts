@@ -106,9 +106,10 @@ export interface AlarmHistoryItem {
   userId: string;
   taskName: string;
   subtaskName: string;
-  action: 'snooze' | 'complete';
+  action: 'snooze' | 'complete' | 'dismiss';
   timestamp: string; // ISO string
   minutes?: number; // snooze duration
+  dismissReason?: string; // e.g. "Not urgent"
 }
 
 // ==================== ACHIEVEMENT & BADGE TYPES ====================

@@ -158,6 +158,7 @@ const AppContent: React.FC = () => {
   });
 
   const [dailyFocusGoal, setDailyFocusGoal] = useState('');
+  const [focusGoalTaskId, setFocusGoalTaskId] = useState('');
   const [savingGoal, setSavingGoal] = useState(false);
 
   // Load user settings dynamically
@@ -169,6 +170,10 @@ const AppContent: React.FC = () => {
           const storedGoal = localStorage.getItem(`dg_daily_focus_goal_${user.uid}`);
           if (storedGoal) {
             setDailyFocusGoal(storedGoal);
+          }
+          const storedGoalTaskId = localStorage.getItem(`dg_daily_focus_goal_task_id_${user.uid}`);
+          if (storedGoalTaskId) {
+            setFocusGoalTaskId(storedGoalTaskId);
           }
 
           const stored = localStorage.getItem(`dg_settings_cache_${user.uid}`);
@@ -199,6 +204,10 @@ const AppContent: React.FC = () => {
               if (data.dailyFocusGoal !== undefined) {
                 setDailyFocusGoal(data.dailyFocusGoal);
                 localStorage.setItem(`dg_daily_focus_goal_${user.uid}`, data.dailyFocusGoal);
+              }
+              if (data.focusGoalTaskId !== undefined) {
+                setFocusGoalTaskId(data.focusGoalTaskId);
+                localStorage.setItem(`dg_daily_focus_goal_task_id_${user.uid}`, data.focusGoalTaskId);
               }
               if (data.settings) {
                 const updatedSettings = {
@@ -1378,62 +1387,182 @@ ${urgentTasksList || 'No high priority pending tasks. Good job!'}
                   </div>
 
                   {/* Daily Focus Goal Banner */}
-                  <div className="bg-[#FCF8D5] border-2 border-[#292524] rounded-2xl p-4 md:p-5 shadow-[4px_4px_0px_#292524] flex flex-col md:flex-row md:items-center justify-between gap-4 text-left">
-                    <div className="flex-1 space-y-1">
-                      <span className="font-serif font-black text-xs text-[#5B6B43] uppercase tracking-widest block">
-                        🎯 Daily Focus Goal
-                      </span>
-                      <p className="font-dm text-xs text-[#292524]/70">
-                        Declare your primary mission for today to let your accountability coach enforce and align your schedule blocks!
-                      </p>
-                      
-                      <div className="relative mt-2 max-w-2xl flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={dailyFocusGoal}
-                          onChange={(e) => setDailyFocusGoal(e.target.value)}
-                          placeholder="What is your absolute must-complete priority today?"
-                          className="w-full bg-[#FAF8F5] border-2 border-[#292524] px-4 py-2.5 rounded-xl text-xs font-dm font-bold text-[#292524] placeholder-[#292524]/40 focus:outline-none focus:ring-1 focus:ring-[#5B6B43]"
-                        />
-                        <button
-                          onClick={async () => {
-                            if (!user) return;
-                            setSavingGoal(true);
-                            try {
-                              // Save to local storage cache
-                              localStorage.setItem(`dg_daily_focus_goal_${user.uid}`, dailyFocusGoal);
-                              
-                              if (user.uid !== 'demo-user') {
-                                // Save to Firestore user doc
-                                await setDoc(doc(db, 'users', user.uid), {
-                                  dailyFocusGoal: dailyFocusGoal
-                                }, { merge: true });
-                              }
-                              
-                              // satisfying sound and confetti
-                              playSuccessChime();
-                              confetti({
-                                particleCount: 30,
-                                spread: 40,
-                                origin: { y: 0.8 },
-                                colors: ['#5B6B43', '#FCF8D5']
-                              });
-                              
-                              alert("Daily Focus Goal registered with your Coach! 🎯 Ready to smash it!");
-                            } catch (error) {
-                              console.error("Error saving daily focus goal:", error);
-                            } finally {
-                              setSavingGoal(false);
-                            }
-                          }}
-                          disabled={savingGoal}
-                          className="bg-[#5B6B43] hover:bg-[#4a5836] active:translate-y-0.5 text-[#FAF8F5] border-2 border-[#292524] shadow-[2px_2px_0px_#292524] font-dm font-black uppercase text-[10px] px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
-                        >
-                          {savingGoal ? 'Saving...' : 'Set Goal'}
-                        </button>
+                  {(() => {
+                    const linkedTask = tasks.find(t => t.id === focusGoalTaskId) || 
+                      (dailyFocusGoal ? tasks.find(t => 
+                        t.name.toLowerCase().includes(dailyFocusGoal.toLowerCase()) || 
+                        dailyFocusGoal.toLowerCase().includes(t.name.toLowerCase())
+                      ) : undefined);
+
+                    const linkedSubtasks = linkedTask ? linkedTask.subtasks : [];
+                    const totalSubtasksCount = linkedSubtasks.length;
+                    const completedSubtasksCount = linkedSubtasks.filter(st => st.status === 'completed').length;
+                    const progressPercent = totalSubtasksCount > 0 ? Math.round((completedSubtasksCount / totalSubtasksCount) * 100) : 0;
+
+                    return (
+                      <div className="bg-[#FCF8D5] border-2 border-[#292524] rounded-2xl p-4 md:p-5 shadow-[4px_4px_0px_#292524] flex flex-col gap-4 text-left">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1 space-y-1">
+                            <span className="font-serif font-black text-xs text-[#5B6B43] uppercase tracking-widest block">
+                              🎯 Daily Focus Goal
+                            </span>
+                            <p className="font-dm text-xs text-[#292524]/70">
+                              Declare your primary mission for today to let your accountability coach enforce and align your schedule blocks!
+                            </p>
+                            
+                            <div className="relative mt-2 max-w-2xl flex items-center gap-2">
+                              <input
+                                type="text"
+                                value={dailyFocusGoal}
+                                onChange={(e) => setDailyFocusGoal(e.target.value)}
+                                placeholder="What is your absolute must-complete priority today?"
+                                className="w-full bg-[#FAF8F5] border-2 border-[#292524] px-4 py-2.5 rounded-xl text-xs font-dm font-bold text-[#292524] placeholder-[#292524]/40 focus:outline-none focus:ring-1 focus:ring-[#5B6B43]"
+                              />
+                              <button
+                                onClick={async () => {
+                                  if (!user) return;
+                                  setSavingGoal(true);
+                                  try {
+                                    // Save to local storage cache
+                                    localStorage.setItem(`dg_daily_focus_goal_${user.uid}`, dailyFocusGoal);
+                                    
+                                    if (user.uid !== 'demo-user') {
+                                      // Save to Firestore user doc
+                                      await setDoc(doc(db, 'users', user.uid), {
+                                        dailyFocusGoal: dailyFocusGoal
+                                      }, { merge: true });
+                                    }
+                                    
+                                    // satisfying sound and confetti
+                                    playSuccessChime();
+                                    confetti({
+                                      particleCount: 30,
+                                      spread: 40,
+                                      origin: { y: 0.8 },
+                                      colors: ['#5B6B43', '#FCF8D5']
+                                    });
+                                    
+                                    alert("Daily Focus Goal registered with your Coach! 🎯 Ready to smash it!");
+                                  } catch (error) {
+                                    console.error("Error saving daily focus goal:", error);
+                                  } finally {
+                                    setSavingGoal(false);
+                                  }
+                                }}
+                                disabled={savingGoal}
+                                className="bg-[#5B6B43] hover:bg-[#4a5836] active:translate-y-0.5 text-[#FAF8F5] border-2 border-[#292524] shadow-[2px_2px_0px_#292524] font-dm font-black uppercase text-[10px] px-4 py-2.5 rounded-xl transition-all cursor-pointer whitespace-nowrap"
+                              >
+                                {savingGoal ? 'Saving...' : 'Set Goal'}
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Link to active Task selector */}
+                        {tasks.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-3 border-t border-[#292524]/10 pt-3 text-xs">
+                            <div className="flex items-center gap-1.5 font-dm font-bold text-[#292524]/75">
+                              <List className="h-3.5 w-3.5 text-[#5B6B43]" />
+                              <span>Milestone Tracker:</span>
+                            </div>
+                            <select
+                              value={focusGoalTaskId}
+                              onChange={async (e) => {
+                                const newTaskId = e.target.value;
+                                setFocusGoalTaskId(newTaskId);
+                                if (user) {
+                                  localStorage.setItem(`dg_daily_focus_goal_task_id_${user.uid}`, newTaskId);
+                                  if (user.uid !== 'demo-user') {
+                                    await setDoc(doc(db, 'users', user.uid), {
+                                      focusGoalTaskId: newTaskId
+                                    }, { merge: true });
+                                  }
+                                }
+                              }}
+                              className="bg-[#FAF8F5] border-2 border-[#292524] rounded-lg px-2.5 py-1 font-dm font-bold text-[11px] text-[#292524] focus:outline-none cursor-pointer"
+                            >
+                              <option value="">-- Auto-detect / Select active Task --</option>
+                              {tasks.map(t => (
+                                <option key={t.id} value={t.id}>
+                                  {t.name} ({t.subtasks.length} subtasks)
+                                </option>
+                              ))}
+                            </select>
+                            {linkedTask && !focusGoalTaskId && (
+                              <span className="font-mono text-[9px] uppercase font-bold text-[#5B6B43] bg-[#5B6B43]/10 border border-[#5B6B43]/30 px-2 py-0.5 rounded flex items-center gap-1 animate-pulse">
+                                <Sparkles className="h-2.5 w-2.5" /> Auto-linked to "{linkedTask.name}"
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Progress bar visual container */}
+                        {linkedTask ? (
+                          <div className="bg-[#FAF8F5] border-2 border-[#292524] rounded-xl p-3 md:p-4 shadow-[2px_2px_0px_#292524]/10 space-y-3.5 mt-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-lg bg-[#5B6B43]/10 border border-[#5B6B43]/30 flex items-center justify-center text-[#5B6B43]">
+                                  <Brain className="h-3.5 w-3.5" />
+                                </div>
+                                <div className="text-left">
+                                  <p className="font-dm font-black text-xs text-[#292524] leading-tight">
+                                    Tracking: "{linkedTask.name}"
+                                  </p>
+                                  <p className="font-dm text-[10px] text-[#292524]/60">
+                                    {completedSubtasksCount} of {totalSubtasksCount} subtasks completed
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="font-mono font-black text-sm text-[#5B6B43] bg-[#5B6B43]/10 px-2.5 py-1 rounded-lg">
+                                {progressPercent}%
+                              </span>
+                            </div>
+
+                            {/* Outer Bar */}
+                            <div className="w-full bg-[#FAF8F5] border-2 border-[#292524] rounded-full h-4 overflow-hidden p-0.5 relative">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                animate={{ width: `${progressPercent}%` }}
+                                transition={{ duration: 0.5, ease: "easeOut" }}
+                                className="bg-[#5B6B43] h-full rounded-full"
+                              />
+                            </div>
+
+                            {/* Subtasks checklist milestone pills */}
+                            {linkedSubtasks.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 pt-1">
+                                {linkedSubtasks.map((st) => (
+                                  <div
+                                    key={st.id}
+                                    className={`font-dm text-[10px] font-bold px-2.5 py-1 rounded-lg border-2 flex items-center gap-1.5 transition-all shadow-[1px_1px_0px_#292524] ${
+                                      st.status === 'completed'
+                                        ? 'bg-[#5B6B43] text-white border-[#292524] line-through opacity-85'
+                                        : 'bg-[#FAF8F5] text-[#292524]/75 border-[#292524]/20'
+                                    }`}
+                                  >
+                                    <span className={`h-2 w-2 rounded-full border border-current ${st.status === 'completed' ? 'bg-white' : 'bg-transparent'}`} />
+                                    {st.name}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="font-dm text-[10px] text-stone-500 italic text-left">
+                                No subtasks or milestones defined for this task yet. Use 'Voice Input' or edit the task details to add milestones!
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          dailyFocusGoal && (
+                            <div className="bg-[#FAF8F5]/50 border border-dashed border-[#292524]/20 rounded-xl p-3 text-center">
+                              <p className="font-dm text-[11px] text-[#292524]/60">
+                                💡 Tip: Create a task named similarly to your Focus Goal or link it manually above to see a live visual milestone progress bar!
+                              </p>
+                            </div>
+                          )
+                        )}
                       </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
 
                   {/* Grid Layout (8 cols left, 4 cols right) */}
                   {loadingTasks ? (

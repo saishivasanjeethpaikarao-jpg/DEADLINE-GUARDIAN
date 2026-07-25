@@ -148,6 +148,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       const u = result.user;
       
+      // Register token with the Autonomous AI Worker
+      if (token) {
+        try {
+          await fetch('/api/worker/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid: u.uid, token })
+          });
+        } catch (e) {
+          console.warn("Could not register token with AI worker:", e);
+        }
+      }
+
       // Upsert user into database to preserve setup and peak hours productivity configuration
       const userRef = doc(db, 'users', u.uid);
       const userSnap = await getDoc(userRef);

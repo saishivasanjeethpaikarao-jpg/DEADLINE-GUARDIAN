@@ -69,3 +69,18 @@ The Express server provides endpoints for task parsing, schedule generation, coa
 ## Status
 
 Working prototype under active development. Gemini features require a configured provider key. Firebase, email, and Google integrations require separate projects, credentials, redirect URLs, and production security review. Risk scores are planning aids, not guarantees.
+
+## How a deadline flows through the app
+
+```mermaid
+flowchart TD
+    IN[User states a deadline<br/>in plain language] --> P[Gemini parses it into<br/>tasks and subtasks]
+    P --> S[Time-block suggestions<br/>into the calendar]
+    S --> W{Work happens}
+    W -- on track --> R[Risk stays low<br/>completion probability high]
+    W -- slipping --> K[Risk signals rise<br/>deadline risk view]
+    K --> RES[Rescue mode replans<br/>the remaining work]
+    RES --> S
+    R & K --> F[Focus mode: timers,<br/>alarms, dismissal history]
+    K --> EM[Accountability email draft<br/>+ coaching notes]
+```
